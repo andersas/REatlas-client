@@ -4,6 +4,7 @@ import socket
 import json
 import argparse
 import struct
+import time
 
 parser = argparse.ArgumentParser(description="");
 parser.add_argument('host',nargs=1,help="Hostname of REatlas server");
@@ -25,6 +26,11 @@ if (msg != "REatlas" + struct.pack('!l',1)):
 
 s.sendall(struct.pack('!H',0xAA55));
 
+while True:
+     msg = s.recv(80);
+     print(msg);
+     if len(msg) == 0:
+          break;
 
 s.shutdown(socket.SHUT_RDWR);
 s.close();
