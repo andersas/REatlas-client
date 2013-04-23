@@ -1,10 +1,12 @@
 #!/usr/bin/python2
 
+from __future__ import print_function
 import socket
 import json
 import argparse
 import struct
 import time
+import sys
 
 parser = argparse.ArgumentParser(description="");
 parser.add_argument('host',nargs=1,help="Hostname of REatlas server");
@@ -26,12 +28,31 @@ if (msg != "REatlas" + struct.pack('!l',1)):
 
 s.sendall(struct.pack('!H',0xAA55));
 
+request = dict();
+request["jsonrpc"] = "2.0";
+request["method"] = "login";
+user = dict();
+user["username"] = "user1";
+user["password"] = "1234";
+request["params"] = user;
+request["id"] = "0";
+
+toserver = json.dumps(request);
+toserver = struct.pack("!BQ", 0,len(toserver)) + toserver;
+
+s.sendall(toserver);
+
 while True:
-     msg = s.recv(80);
-     print(msg);
+     msg = s.recv(1024*8);
      if len(msg) == 0:
           break;
+     else:
+          print("Received a message", len(msg),file=sys.stderr);
+          print(msg,end="");
 
-s.shutdown(socket.SHUT_RDWR);
+try:
+     s.shutdown(socket.SHUT_RDWR);
+except:
+     pass;
 s.close();
 
