@@ -35,7 +35,7 @@ class REatlas(object):
           s.socket = None;
           s.request_count = 0;
 
-     def setup_socket(s):
+     def _setup_socket(s):
           s.disconnect(); # Close any open connection
           s.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM);
 
@@ -48,7 +48,7 @@ class REatlas(object):
                s.socket.close();
           s.connected = False;
 
-     def json_rpc_request(s,method,params,request_id):
+     def _json_rpc_request(s,method,params,request_id):
           msg = dict();
           msg["jsonrpc"] = "2.0";
           msg["method"] = method;
@@ -61,7 +61,7 @@ class REatlas(object):
           return request_string;
 
 
-     def send_string(s,string):
+     def _send_string(s,string):
           if (not s.connected):
                raise REatlasError("Not connected to RE atlas server.");
           try:
@@ -70,7 +70,7 @@ class REatlas(object):
                s.disconnect();
                raise ConnectionError("Error sending request to server.");
 
-     def get_next_header(s):
+     def _get_next_header(s):
           (header, closed) = netutils.readall(s.socket,9);
           if (closed):
                s.disconnect();
@@ -81,13 +81,13 @@ class REatlas(object):
           return (msgtype, msglen);
           
 
-     def get_json_reply(s):
-          (msgtype, msglen) = s.get_next_header();
+     def _get_json_reply(s):
+          (msgtype, msglen) = s._get_next_header();
           while (msgtype == KEEPALIVE): # Get any keepalive packets out
                if (msglen != 0):
                     s.disconnect();
                     raise ConnectionError("Received invalid keepalive packet.");
-               (msgtype, msglen) = s.get_next_header();
+               (msgtype, msglen) = s._get_next_header();
           
           if (msgtype == SRV_MSG):
                msg, closed = netutils.readall(s.socket,msglen);
@@ -108,10 +108,10 @@ class REatlas(object):
 
      def call_atlas(s,method,params):
 
-          msg = s.json_rpc_request(method,params,s.request_count);
-          s.send_string(msg);
+          msg = s._json_rpc_request(method,params,s.request_count);
+          s._send_string(msg);
 
-          json_reply = s.get_json_reply();
+          json_reply = s._get_json_reply();
 
           response = s.parse_json_rpc_reply(json_reply);
           
@@ -120,8 +120,8 @@ class REatlas(object):
           return response["result"];
 
      def notify_atlas(s,method,params):
-          msg = s.json_rpc_request(method,params,None);
-          s.send_string(msg);
+          msg = s._json_rpc_request(method,params,None);
+          s._send_string(msg);
 
 
 
@@ -152,7 +152,7 @@ class REatlas(object):
      
      def connect(s):
           if (not s.socket):
-               s.setup_socket();
+               s._setup_socket();
           s.socket.connect((s.host,s.port));
           # Shake hands with server
           msg, closed = netutils.readall(s.socket,11);
@@ -184,6 +184,16 @@ class REatlas(object):
 
           return s.call_atlas("login",user);
 
+     def connect_and_login(s,username,password):
+          """
+          New connections time out very fast. If you're using the REatlas
+          object from interactive python, use this method to 
+          connect and login instead of doing it in separate calls.
+          The connection times out before you can type in your user name
+          and password.
+          """
 
+          s.connect();
+          return s.login(username,password);
 
 
