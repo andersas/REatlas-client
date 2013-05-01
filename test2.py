@@ -5,6 +5,10 @@ import reatlas_client
 atlas = reatlas_client.REatlas("localhost",65535);
 
 atlas.connect();
-print(atlas.login("user1","1234"));
+atlas.build_functions();
+print(atlas.login(username="user1",password="1234"));
+print(atlas.get_available_methods());
+print(atlas.secret());
+print(atlas._call_atlas("handle_binary_request",dict()));
 atlas.disconnect();
 

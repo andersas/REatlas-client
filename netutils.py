@@ -33,7 +33,11 @@ def readall(sock,length):
      while (read != length):
           try:
                buf = sock.recv(length - read);
-          except socket.error:
+          except socket.error as e:
+               # An error probably means the connection is closed.
+               # However, if it's a timeout, this is not the case.
+               if (type(e) == socket.timeout):
+                    raise e;
                closed = True;
                break;
           if (buf == ''):
