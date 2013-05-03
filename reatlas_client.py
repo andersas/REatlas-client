@@ -42,7 +42,7 @@ class REatlas(object):
           s.host = socket.gethostbyname(host);
           s.port = port;
           s._socket = None;
-          s.request_count = 0;
+          s._request_count = 0;
           s.is_connected = False;
 
      def _setup_socket(s):
@@ -150,7 +150,7 @@ class REatlas(object):
                     ExceptionMessage = "Received unspecified error.";
                raise REatlasError(ExceptionMessage);
 
-          if (return_object["id"] != s.request_count):
+          if (return_object["id"] != s._request_count):
                s.disconnect();
                raise ConnectionError("Response ID did not match request ID.");
 
@@ -165,14 +165,14 @@ class REatlas(object):
           
           method: name of the RPC method.
           params: dictionary of arguments. """
-          msg = s._json_rpc_request(method,params,s.request_count);
+          msg = s._json_rpc_request(method,params,s._request_count);
           s._send_string(msg);
 
           json_reply = s._get_json_reply();
 
           response = s._parse_json_rpc_reply(json_reply);
           
-          s.request_count += 1;
+          s._request_count += 1;
 
           return response["result"];
 
@@ -193,8 +193,8 @@ class REatlas(object):
      def build_functions(s):
           """ Call this function to make the server defined RPC functions
           available as local class methods. Requires a connection to be set up first. """
-          func_names = s._call_atlas("get_available_methods");
-          func_docstrings = s._call_atlas("get_method_docstrings");
+          func_names = s._call_atlas("_get_available_methods");
+          func_docstrings = s._call_atlas("_get_method_docstrings");
 
           # Constants in lambda functions are a bit weird.
           # They are only references to the named variable
@@ -230,7 +230,7 @@ class REatlas(object):
                raise ConnectionError("Could not connect to RE atlas server.");
 
           s.is_connected = True;
-          s.request_count = 0;
+          s._request_count = 0;
 
      def connect_and_login(s,**kwargs):
           """
