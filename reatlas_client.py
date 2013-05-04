@@ -27,7 +27,7 @@ class ConnectionError(Exception):
 
 
 class REatlas(object):
-     version = 1; # Protocol version, not client version.
+     _protocol_version = 1; # Protocol version, not client version.
 
      def __init__(s,host,port):
           """ Build a new REatlas object.
@@ -43,7 +43,7 @@ class REatlas(object):
           s.port = port;
           s._socket = None;
           s._request_count = 0;
-          s.is_connected = False;
+          s._is_connected = False;
 
      def _setup_socket(s):
           s.disconnect(); # Close any open connection
@@ -56,7 +56,7 @@ class REatlas(object):
                except:
                     pass;
                s._socket.close();
-          s.is_connected = False;
+          s._is_connected = False;
 
      def _json_rpc_request(s,method,params,request_id):
           """ Factory function for JSON-RPC 2.0 rpc requests. 
@@ -77,7 +77,7 @@ class REatlas(object):
 
      def _send_string(s,string):
           """ Send the string supplied as argument to the RE atlas server. """
-          if (not s.is_connected):
+          if (not s._is_connected):
                raise ConnectionError("Not connected to RE atlas server.");
           try:
                s._socket.sendall(string);
@@ -220,7 +220,7 @@ class REatlas(object):
           msg, closed = netutils.readall(s._socket,11);
           if (closed):
                raise ConnectionError("Could not connect to RE atlas server.");
-          if (msg != "REatlas" + struct.pack('!l',1)):
+          if (msg != "REatlas" + struct.pack('!l',s._protocol_version)):
                s.disconnect();
                raise ConnectionError("Bad handshake from server or unsupported server version.");
           try:
@@ -229,7 +229,7 @@ class REatlas(object):
                s.disconnect();
                raise ConnectionError("Could not connect to RE atlas server.");
 
-          s.is_connected = True;
+          s._is_connected = True;
           s._request_count = 0;
 
      def connect_and_login(s,**kwargs):
