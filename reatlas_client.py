@@ -145,7 +145,7 @@ class REatlas(object):
                     code = return_object["error"]["code"];
                     message = return_object["error"]["message"];
                     ExceptionMessage = "Received error code " + str(code) + \
-                    " with message \"" + message + "\"";
+                    " with message \"" + str(message.encode('utf-8')) + "\"";
                except KeyError:
                     ExceptionMessage = "Received unspecified error.";
                raise REatlasError(ExceptionMessage);
