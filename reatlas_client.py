@@ -12,8 +12,9 @@ import netutils
 
 JSON_MSG = netutils.htonb(0);
 SRV_MSG = netutils.htonb(1);
-BIN_FILE = netutils.htonb(2);
-KEEPALIVE = netutils.htonb(3);
+BIN_REQUEST = netutils.htonb(2);
+BIN_FILE = netutils.htonb(3);
+KEEPALIVE = netutils.htonb(4);
 
 
 ## General error for the RE atlas
