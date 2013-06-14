@@ -10,11 +10,11 @@ import sys
 import netutils
 
 
-JSON_MSG = netutils.htonb(0);
-SRV_MSG = netutils.htonb(1);
-BIN_REQUEST = netutils.htonb(2);
-BIN_FILE = netutils.htonb(3);
-KEEPALIVE = netutils.htonb(4);
+JSON_MSG = netutils.htonb(74); # Ascii 'J'
+SRV_MSG = netutils.htonb(83); # Ascii 'S'
+BIN_REQUEST = netutils.htonb(66); # Ascii 'B'
+BIN_FILE = netutils.htonb(70); # Ascii 'F'
+KEEPALIVE = netutils.htonb(75); # Ascii 'K'
 
 
 ## General error for the RE atlas
@@ -28,7 +28,7 @@ class ConnectionError(Exception):
 
 
 class REatlas(object):
-     _protocol_version = 1; # Protocol version, not client version.
+     _protocol_version = 2; # Protocol version, not client version.
 
      def __init__(s,host,port):
           """ Build a new REatlas object.
