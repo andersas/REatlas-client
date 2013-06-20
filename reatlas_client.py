@@ -6,7 +6,7 @@ import json
 import argparse
 import struct
 import time
-import sys
+import os,sys
 import netutils
 
 
@@ -14,6 +14,7 @@ JSON_MSG = netutils.htonb(74); # Ascii 'J'
 SRV_MSG = netutils.htonb(83); # Ascii 'S'
 BIN_REQUEST = netutils.htonb(66); # Ascii 'B'
 BIN_FILE = netutils.htonb(70); # Ascii 'F'
+BIN_ACK = netutils.htonb(65); # Ascii 'A'
 KEEPALIVE = netutils.htonb(75); # Ascii 'K'
 
 
@@ -101,12 +102,10 @@ class REatlas(object):
           msgtype = netutils.htonb(msgtype);
           
           return (msgtype, msglen);
-          
-
-     def _get_json_reply(s):
-          """ Attempt to receive a JSON-RPC reply string from the server. 
-          If the next message is not a JSON-RPC reply, throw an exception
-          and close the connection. Skips keepalive messages. """
+         
+     def _get_next_nonkeepalive_packet_of_type(s,thetype):
+          """ Call this instead of get next header to skip
+          keepalives and to catch server errors. """
 
           (msgtype, msglen) = s._get_next_header();
           while (msgtype == KEEPALIVE): # Get any keepalive packets out
@@ -119,11 +118,22 @@ class REatlas(object):
                msg, closed = netutils.readall(s._socket,msglen);
                s.disconnect();
                raise ConnectionError(msg);
-          
-          if (msgtype != JSON_MSG): # Catch all 
+
+          if (msgtype != thetype): # Catch all 
                s.disconnect();
                msgtype_int = netutils.ntohb(msgtype);
-               raise ConnectionError("Got unexpected reply message (" + str(msgtype_int) + "), expected JSON_MSG.");
+               expected_int = netutils.ntohb(thetype);
+               raise ConnectionError("Got unexpected reply message (" + str(msgtype_int) + "), expected " + str(expected_int) + ".");
+
+          return (msgtype,msglen);
+
+
+     def _get_json_reply(s):
+          """ Attempt to receive a JSON-RPC reply string from the server. 
+          If the next message is not a JSON-RPC reply, throw an exception
+          and close the connection. Skips keepalive messages. """
+
+          (msgtype,msglen) = s._get_next_nonkeepalive_packet_of_type(JSON_MSG);
 
           (json_msg, closed) = netutils.readall(s._socket,msglen);
           if (closed):
@@ -255,5 +265,117 @@ class REatlas(object):
           return s.login(**kwargs);
 
 
+     def download_file(s,fp, filename,username=""):
+          """ download_file(fp,filename,username=""):
 
+          Downloads a file from the server by name.
+
+          Arguments:
+               fp: file-like object, filename or None.
+               The downloaded file will be written to this file.
+               If None, the entire file contents will be returned.
+
+               filename: Name of file on server.
+
+               username: If given, download this users file instead
+                    of your own.  """
+
+          if (hasattr(fp,"write")):
+               return s._download_to_file(fp,filename,username);
+          elif (type(fp) is str):
+               with open(fp,"w") as f:
+                    return s._download_to_file(f,filename,username);
+          else:
+              return s._download_to_string(filename,username);
+
+     def upload_from_file(s,fp,tofile,username=""):
+
+          if (hasattr(fp,"read")):
+               return s._upload_from_file(fp,tofile,username);
+          else:
+               with open(fp,"r") as f:
+                    return s._upload_from_file(f,tofile,username);
+
+
+     def upload_from_string(s,string,tofile,username=""):
+
+          size = len(string);
+
+          s._select_current_file(filename=tofile,username=username);
+          header = BIN_FILE + netutils.htonll(size);
+          s._send_string(header);
+          s._send_string(string);
+
+          s._wait_for_bin_ack(); # The server sends an acknowledgment packet
+                                 # after having saved the file.
+
+     def _upload_from_file(s,fp,tofile,username):
+          
+          filesize = os.path.getsize(fp.name);
+          
+          fp.seek(0);
+
+          # Select current file on server:
+          s._select_current_file(filename=tofile,username=username);
+
+          header = BIN_FILE + netutils.htonll(filesize);
+
+          s._send_string(header);
+
+          while (filesize > 0):
+               buf = fp.read(min(filesize,16384));
+               l = len(buf);
+               filesize -= l;
+               if (l > 0):
+                    s._send_string(buf);
+               else:
+                    s.disconnect();
+                    raise IOError("Could not read remaining " + str(filesize) + " bytes of " + fp.name + ".");
+
+          s._wait_for_bin_ack(); # The server sends an acknowledgment packet
+                                 # after having saved the file.
+          
+     def _wait_for_bin_ack(s):
+          s._get_next_nonkeepalive_packet_of_type(BIN_ACK)
+
+
+     def _request_file(s,filename,username):
+
+          # Select current file on server:
+          s._select_current_file(filename=filename,username=username);
+
+          # Send a BIN_REQ packet to request a file transfer:
+  
+          packet = BIN_REQUEST + netutils.htonll(0);
+          s._send_string(packet);
+     
+
+     def _download_to_string(s,filename,username):
+          s._request_file(filename,username);
+          (msgtype,msglen) = s._get_next_nonkeepalive_packet_of_type(BIN_FILE);
+
+          buf,closed = netutils.readall(s._socket,msglen);
+
+          if (len(buf) != msglen):
+               s.disconnect();
+               raise ConnectionError("Server closed connection before file was transferred.");
+
+          return buf;
+
+     def _download_to_file(s,fp,filename,username):
+
+          s._request_file(filename,username);
+
+          (msgtype,msglen) = s._get_next_nonkeepalive_packet_of_type(BIN_FILE);
+
+          while (msglen > 0):
+               buf,closed = netutils.readall(s._socket, min(msglen,16384));
+               l = len(buf);
+               if (l > 0):
+                    fp.write(buf);
+               msglen -= l;
+               if (closed and msglen > 0):
+                    s.disconnect();
+                    raise ConnectionError("Server closed connection before file was transferred.");
+               
 
