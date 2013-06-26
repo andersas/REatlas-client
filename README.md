@@ -1,7 +1,8 @@
 REatlas-client
 ==============
 
-Client for the AU ESG renewable energy atlas
+Client for the AU ESG renewable energy atlas,
+Version 1.0 (beta)
 
 
 
