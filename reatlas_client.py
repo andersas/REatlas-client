@@ -262,7 +262,7 @@ class REatlas(object):
                s.disconnect();
                raise ConnectionError("Bad handshake from server or unsupported server version.");
           try:
-               s._socket.sendall(struct.pack('!H',0xAA55)); # Send our handshake to the server
+               s._socket.sendall(netutils.htonl(428344082)); # Send our handshake to the server
           except socket.error:
                s.disconnect();
                raise ConnectionError("Could not connect to RE atlas server.");
@@ -316,6 +316,15 @@ class REatlas(object):
               return s._download_to_string(filename,username);
 
      def upload_from_file(s,fp,tofile,username=""):
+          """ upload_from_file(fp,tofile,username=""):
+
+          Uploads a file to the REatlas server.
+
+          Arguments:
+               fp: file handle or filename (as a string) of the file to upload.
+               tofile: Name to give the file on the server.
+               username: If given, upload to this users folder instead of your own.
+          """
 
           if (hasattr(fp,"read")):
                return s._upload_from_file(fp,tofile,username);
@@ -325,6 +334,16 @@ class REatlas(object):
 
 
      def upload_from_string(s,string,tofile,username=""):
+          """ upload_from_string(string,tofile,username=""):
+    
+          Upload a file from a string to the REatlas server.
+
+          Arguments:
+               string: Contents of the file as a string
+               tofile: Name to give the file on the server.
+               username: If give, upload to this users folder instead of your own.
+          """
+
 
           size = len(string);
 
@@ -405,4 +424,3 @@ class REatlas(object):
                     s.disconnect();
                     raise ConnectionError("Server closed connection before file was transferred.");
                
-
