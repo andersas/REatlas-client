@@ -8,6 +8,7 @@ import struct
 import time
 import os,sys
 import netutils
+import ConfigParser
 
 
 JSON_MSG = netutils.htonb(74); # Ascii 'J'
@@ -27,6 +28,32 @@ class REatlasError(Exception):
 class ConnectionError(Exception):
      pass;
 
+
+def turbineconf_to_powercurve_object(turbineconfigfile):
+     config = dict();
+     parser = ConfigParser.ConfigParser();
+     parser.read(turbineconfigfile);
+     config["HUB_HEIGHT"] = parser.getfloat("main","HUB_HEIGHT");
+     config["V"] = [float(speed) for speed in parser.get("main", "V").split(',')]
+     config["POW"] = [float(power) for power in parser.get("main", "POW").split(',')]
+
+     if (len(config["V"]) != len(config["POW"])):
+          raise ValueError("V and POW should have equal length.");
+     if (len(config["V"]) < 3):
+          raise ValueError("You should have at least 2 points on your power curve.");
+     return config;
+ 
+def solarpanelconf_to_solar_panel_config_object(panelconfigfile):
+     config = dict();
+     parser = ConfigParser.ConfigParser();
+     parser.read(panelconfigfile);
+     
+     keys = ["A","B","C","D","NOCT","Tstd","Tamb","Intc","ta","threshold","inverter_efficiency"];
+
+     for key in keys:
+          config[key] = parser.getfloat("main",key);
+
+     return config;
 
 class REatlas(object):
      _protocol_version = 2; # Protocol version, not client version.
