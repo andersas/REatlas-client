@@ -9,6 +9,9 @@ import time
 import os,sys
 import netutils
 import ConfigParser
+import numpy
+import scipy
+import scipy.optimize
 
 
 JSON_MSG = netutils.htonb(74); # Ascii 'J'
@@ -54,6 +57,42 @@ def solarpanelconf_to_solar_panel_config_object(panelconfigfile):
           config[key] = parser.getfloat("main",key);
 
      return config;
+
+def translate_GPS_coordinates_to_array_indices(latitude,longitude,latitudes,longitudes):
+     """ Translate a GPS coordinate to an index i,j,
+     i.e. find the i,j that makes latitudes[i][j],longitudes[i][j]
+     closest to latitude,longitude.
+
+     Arguments:
+          latitude, longitude: The GPS coordinate
+          latitudes,longitudes: Two 2-D arrays of latitudes and longitudes.
+
+     Returns the tuple (i,j).
+     """
+
+     lat = latitudes;
+     lon = longitudes;
+
+     # objective function in minimization
+     def f(x,gpslat,gpslon):
+          i = int(x[0]) % lat.shape[0];
+          j = int(x[1]) % lat.shape[1];
+          return numpy.sqrt((lat[i][j] - gpslat)**2+(lon[i][j] - gpslon)**2);
+     
+     result = scipy.optimize.fmin(f,x0=numpy.array([lat.shape[0]/2,lat.shape[1]/2]),args=(latitude,longitude),disp=False);
+
+     # The result might be a negative index or one above the max index.
+     # Translate it back to between 0 and max index
+
+     i = int(result[0]) % lat.shape[0];
+     j = int(result[1]) % lat.shape[1];
+
+     if (i < 0):
+          i = lat.shape[0] - i;
+     if (j < 0):
+          j = lat.shape[1] - j;
+
+     return (i,j);
 
 class REatlas(object):
      _protocol_version = 2; # Protocol version, not client version.
