@@ -33,12 +33,19 @@ class ConnectionError(Exception):
 
 
 def turbineconf_to_powercurve_object(turbineconfigfile):
+     """ Load a turbine config file for use in REatlas conversion.
+     
+     Arguments:
+          turbineconfigfile: Name of the file to load.
+
+     Returns an object that can be used in the on/offshorepowercurve argument
+     for wind conversion.  """
      config = dict();
      parser = ConfigParser.ConfigParser();
      parser.read(turbineconfigfile);
-     config["HUB_HEIGHT"] = parser.getfloat("main","HUB_HEIGHT");
-     config["V"] = [float(speed) for speed in parser.get("main", "V").split(',')]
-     config["POW"] = [float(power) for power in parser.get("main", "POW").split(',')]
+     config["HUB_HEIGHT"] = parser.getfloat("windcfg","HUB_HEIGHT");
+     config["V"] = [float(speed) for speed in parser.get("windcfg", "V").split(',')]
+     config["POW"] = [float(power) for power in parser.get("windcfg", "POW").split(',')]
 
      if (len(config["V"]) != len(config["POW"])):
           raise ValueError("V and POW should have equal length.");
@@ -47,6 +54,13 @@ def turbineconf_to_powercurve_object(turbineconfigfile):
      return config;
  
 def solarpanelconf_to_solar_panel_config_object(panelconfigfile):
+     """ Load a solar panel config file for use in REatlas PV conversion
+     
+     Arguments:
+          panelconfigfile: Name of file to load
+          
+     Returns an object that can be used as the solar_panel_config argument
+     in REatlas PV conversions.  """
      config = dict();
      parser = ConfigParser.ConfigParser();
      parser.read(panelconfigfile);
@@ -54,7 +68,7 @@ def solarpanelconf_to_solar_panel_config_object(panelconfigfile):
      keys = ["A","B","C","D","NOCT","Tstd","Tamb","Intc","ta","threshold","inverter_efficiency"];
 
      for key in keys:
-          config[key] = parser.getfloat("main",key);
+          config[key] = parser.getfloat("pvcfg",key);
 
      return config;
 
@@ -331,55 +345,77 @@ class REatlas(object):
           return s.login(**kwargs);
 
 
-     def download_file(s,fp, filename,username=""):
-          """ download_file(fp,filename,username=""):
+     def download_file(s,filename,username=""):
+          """ download_file(filename,username="")
+          
+          Downloads a file from the server.
+          
+          Arguments:
+               filename: Name of file to download.
+               username: If given, download this users file instead
+                    of your own.  """
 
-          Downloads a file from the server by name.
+          s.download_file_and_rename(filename,filename,username);
+
+     def download_file_and_rename(s,local_file,remote_file,username=""):
+          """ download_file_and_rename(local_file,remote_file,username=""):
+
+          Download a file from the server by name.
 
           Arguments:
-               fp: file-like object, filename or None.
+               local_file: file-like object, filename or None.
                The downloaded file will be written to this file.
-               If None, the entire file contents will be returned.
+               If None, the entire file contents will be returned as a string.
 
-               filename: Name of file on server.
+               remote_file: Name of file on server.
 
                username: If given, download this users file instead
                     of your own.  """
 
-          if (hasattr(fp,"write")):
-               return s._download_to_file(fp,filename,username);
+          if (hasattr(local_file,"write")):
+               return s._download_to_file(local_file,remote_file,username);
           elif (type(fp) is str):
-               with open(fp,"w") as f:
-                    return s._download_to_file(f,filename,username);
+               with open(local_file,"wb") as f:
+                    return s._download_to_file(f,remote_file,username);
           else:
-              return s._download_to_string(filename,username);
+              return s._download_to_string(remote_file,username);
 
-     def upload_from_file(s,fp,tofile,username=""):
-          """ upload_from_file(fp,tofile,username=""):
-
-          Uploads a file to the REatlas server.
+     def upload_file(s,filename,username=""):
+          """ upload_file(filename,username="")
+          
+          Upload a file to the REatlas server.
 
           Arguments:
-               fp: file handle or filename (as a string) of the file to upload.
-               tofile: Name to give the file on the server.
+               filename: Name of file to upload.
+               username: If given, upload to this users folder instead of your own.  """
+          s.upload_from_file_and_rename(filename,filename,username);
+     
+     def upload_from_file_and_rename(s,local_file,remote_file,username=""):
+          """ upload_from_file(local_file,remote_file,username=""):
+
+          Upload a file to the REatlas server.
+
+          Arguments:
+               local_file: file handle or filename (as a string) of the file to upload.
+               remote_file: Name to give the file on the server.
                username: If given, upload to this users folder instead of your own.
           """
 
-          if (hasattr(fp,"read")):
-               return s._upload_from_file(fp,tofile,username);
+          if (hasattr(local_file,"read")):
+               return s._upload_from_file(local_file,remote_file,username);
           else:
-               with open(fp,"r") as f:
-                    return s._upload_from_file(f,tofile,username);
+               with open(local_file,"rb") as f:
+                    return s._upload_from_file(f,remote_file,username);
 
 
-     def upload_from_string(s,string,tofile,username=""):
-          """ upload_from_string(string,tofile,username=""):
+     def upload_from_string(s,string,remote_file,username=""):
+          """ upload_from_string(string,remote_file,username=""):
     
           Upload a file from a string to the REatlas server.
 
           Arguments:
                string: Contents of the file as a string
-               tofile: Name to give the file on the server.
+               remote_file: Name to give the file on the server.
                username: If give, upload to this users folder instead of your own.
           """
 
@@ -424,10 +460,10 @@ class REatlas(object):
           s._get_next_nonkeepalive_packet_of_type(BIN_ACK)
 
 
-     def _request_file(s,filename,username):
+     def _request_file(s,filename,username,intent=""):
 
           # Select current file on server:
-          s._select_current_file(filename=filename,username=username);
+          s._select_current_file(filename=filename,username=username,intent=intent);
 
           # Send a BIN_REQ packet to request a file transfer:
   
@@ -436,7 +472,7 @@ class REatlas(object):
      
 
      def _download_to_string(s,filename,username):
-          s._request_file(filename,username);
+          s._request_file(filename,username,intent="download");
           (msgtype,msglen) = s._get_next_nonkeepalive_packet_of_type(BIN_FILE);
 
           buf,closed = netutils.readall(s._socket,msglen);
@@ -449,7 +485,7 @@ class REatlas(object):
 
      def _download_to_file(s,fp,filename,username):
 
-          s._request_file(filename,username);
+          s._request_file(filename,username,intent="download");
 
           (msgtype,msglen) = s._get_next_nonkeepalive_packet_of_type(BIN_FILE);
 
