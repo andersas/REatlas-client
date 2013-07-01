@@ -111,12 +111,12 @@ def translate_GPS_coordinates_to_array_indices(latitude,longitude,latitudes,long
 class REatlas(object):
      _protocol_version = 2; # Protocol version, not client version.
 
-     def __init__(s,host,port):
+     def __init__(s,host,port=65535):
           """ Build a new REatlas object.
           
           Arguments:
                host: hostname or ip address of RE atlas server.
-               port: TCP port used by server.
+               port=65535: TCP port used by server.
                
           To make the server functions available, call the build_functions() method.
           You can also call connect_and_login method if you're e.g. using IPython. """
@@ -374,7 +374,7 @@ class REatlas(object):
 
           if (hasattr(local_file,"write")):
                return s._download_to_file(local_file,remote_file,username);
-          elif (type(fp) is str):
+          elif (type(local_file) is str):
                with open(local_file,"wb") as f:
                     return s._download_to_file(f,remote_file,username);
           else:
