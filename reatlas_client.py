@@ -84,29 +84,18 @@ def translate_GPS_coordinates_to_array_indices(latitude,longitude,latitudes,long
      Returns the tuple (i,j).
      """
 
-     lat = latitudes;
-     lon = longitudes;
+     distances = numpy.sqrt((latitudes - latitude)**2+(longitudes-longitude)**2);
+     minimum = numpy.argmin(distances);
 
-     # objective function in minimization
-     def f(x,gpslat,gpslon):
-          i = int(x[0]) % lat.shape[0];
-          j = int(x[1]) % lat.shape[1];
-          return numpy.sqrt((lat[i][j] - gpslat)**2+(lon[i][j] - gpslon)**2);
+     arg = numpy.unravel_index(minimum,dims=distances.shape);
+
+     ret = []
+
+     for i in arg:
+          ret.append(i);
      
-     result = scipy.optimize.fmin(f,x0=numpy.array([lat.shape[0]/2,lat.shape[1]/2]),args=(latitude,longitude),disp=False);
 
-     # The result might be a negative index or one above the max index.
-     # Translate it back to between 0 and max index
-
-     i = int(result[0]) % lat.shape[0];
-     j = int(result[1]) % lat.shape[1];
-
-     if (i < 0):
-          i = lat.shape[0] - i;
-     if (j < 0):
-          j = lat.shape[1] - j;
-
-     return (i,j);
+     return tuple(ret);
 
 class REatlas(object):
      _protocol_version = 2; # Protocol version, not client version.
