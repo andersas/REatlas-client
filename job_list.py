@@ -45,7 +45,7 @@ total = str(datetime.timedelta(seconds=timings["TOTAL"]));
 
 
 
-print("Note: The following does not take into account time a job has been running so far.");
+print("Note: The following estimates are quite rough.");
 print("All work currently in the queue is estimated to be done in " + total + ".");
 user_has_a_job_in_queue = False;
 for job in jobs:
