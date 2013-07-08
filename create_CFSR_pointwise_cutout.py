@@ -6,7 +6,7 @@ import argparse
 import sys
 
 
-parser = argparse.ArgumentParser(description="List all cutouts on the REatlas server");
+parser = argparse.ArgumentParser(description="Create a pointwise cutout");
 parser.add_argument('server',nargs=1,type=str,help="Name or IP of REatlas server");
 parser.add_argument('-p', '--port', nargs="?", type=int,help="Port number of REatlas server");
 parser.add_argument("--username",nargs="?",type=str,help="REatlas user name");

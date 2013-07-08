@@ -8,7 +8,7 @@ import tempfile
 import numpy
 import numbers
 
-parser = argparse.ArgumentParser(description="List all cutouts on the REatlas server");
+parser = argparse.ArgumentParser(description="Download metadata for a REatlas cutout as either .npz,.csv,.mat or .shp format.");
 parser.add_argument('server',nargs=1,type=str,help="Name or IP of REatlas server");
 parser.add_argument('-p', '--port', nargs="?", type=int,help="Port number of REatlas server");
 parser.add_argument("--username",nargs="?",type=str,help="REatlas user name");
@@ -156,7 +156,9 @@ else: #Ok, user does not want a .npz file...
                     rec = [lat,lon,0,i,onshore,height];
                     sf.record(*rec);
 
+          print("Saving " + filename + "...");
           sf.save(filename);
           # Dates
           dates_filename = filename[0:-4] + "_dates.csv";
+          print("Saving " + dates_filename + ".");
           numpy.savetxt(dates_filename,meta["dates"],delimiter=",",fmt="%s");
