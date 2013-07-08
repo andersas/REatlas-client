@@ -5,6 +5,8 @@ import reatlas_client
 import argparse
 import sys
 import tempfile
+import numpy
+import numbers
 
 parser = argparse.ArgumentParser(description="List all cutouts on the REatlas server");
 parser.add_argument('server',nargs=1,type=str,help="Name or IP of REatlas server");
@@ -24,7 +26,7 @@ cutoutuser = args.cutoutuser
 
 filename = args.filename[0];
 
-if (filename.endswidth(".mat")):
+if (filename.endswith(".mat")):
      try:
           import scipy.io
      except ImportError:
@@ -74,14 +76,87 @@ if (ending not in choices or ending == ".npz"):
      if ending != ".npz":
           filename += ".npz"
      atlas.download_file_and_rename(remote_file="meta_"+cutoutname+".npz",local_file=filename);
+
+     atlas.disconnect();
 else: #Ok, user does not want a .npz file...
+ 
+     buf = tempfile.TemporaryFile();
+     atlas.download_file_and_rename(remote_file="meta_"+cutoutname+".npz",local_file=buf);
+     atlas.disconnect();
+     buf.seek(0);
+    
+     meta_npz = numpy.load(buf);
+     meta = dict();
+     for key in meta_npz.files:
+          meta[key] = meta_npz[key];
+     meta["dates"] = numpy.array([date.isoformat() for date in meta["dates"]]);
+ 
+     if (ending == ".csv"):
+          
+          for key in meta.iterkeys():
+               curr_filename = filename[0:-4] + "_" + key + ".csv";
+
+               print("Saving " +curr_filename+"...");
+               if (isinstance(meta[key].flatten()[0],numbers.Number)):
+                    numpy.savetxt(curr_filename,meta[key],delimiter=",");
+               else:
+                    numpy.savetxt(curr_filename,meta[key],delimiter=",",fmt="%s");
+
+
+
+     elif (ending == ".mat"):
+          try:
+               import scipy.io;
+          except ImportError:
+               print("Scipy must be installed to save matlab files.",file=sys.stderr);
+               exit(1);
+
+          print("Saving " + filename + ".");
+          scipy.io.savemat(filename,mdict=meta,oned_as="column");
+
+     elif (ending == ".shp"):
+          try:
+               import shapefile;
+          except ImportError:
+               print("Shapefile (pyshp) must be installed to save to shapefiles.",file=sys.stderr);
+               exit(1);
      
+          
+          sf = shapefile.Writer(shapefile.POINT);
+          sf.field("LATITUDE",'O',8,0);
+          sf.field("LONGITUDE",'O',8,0);
+          sf.field("IDX1",'N',8,0);
+          sf.field("IDX2",'N',8,0);
+          sf.field("CFSR_ONSHORE",'L',1);
+          sf.field("GEBCO_HEIGHT",'O',8);
 
+          latitudes = meta["latitudes"];
+          longitudes = meta["longitudes"];
+          
+          if (len(latitudes.shape) > 2):
+               print("Supports only 1 or 2D cutouts",file=sys.stderr);
+               exit(1);
+          if (len(latitudes.shape) == 2):
+               I,J = latitudes.shape;
+               for i in range(I):
+                    for j in range(J):
+                         lat, lon = latitudes[i][j],longitudes[i][j];
+                         onshore = bool(meta["onshoremap"][i][j]);
+                         height = meta["heights"][i][j];
+                         sf.point(lon,lat);
+                         rec = [lat,lon,i,j,onshore,height];
+                         sf.record(*rec);
+          else:
+               I = latitudes.shape[0];
+               for i in range(I):
+                    lat, lon = latitudes[i],longitudes[i];
+                    onshore = bool(meta["onshoremap"][i]);
+                    height = meta["heights"][i];
+                    sf.point(lon,lat);
+                    rec = [lat,lon,0,i,onshore,height];
+                    sf.record(*rec);
 
-
-
-
-atlas.disconnect();
-
-
-
+          sf.save(filename);
+          # Dates
+          dates_filename = filename[0:-4] + "_dates.csv";
+          numpy.savetxt(dates_filename,meta["dates"],delimiter=",",fmt="%s");
