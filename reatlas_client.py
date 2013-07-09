@@ -299,10 +299,17 @@ class REatlas(object):
           # Shake hands with server
           msg, closed = netutils.readall(s._socket,11);
           if (closed):
-               raise ConnectionError("Could not connect to RE atlas server.");
+               raise ConnectionError("Could not connect to RE atlas server. ");
           if (msg != "REatlas" + struct.pack('!l',s._protocol_version)):
-               s.disconnect();
-               raise ConnectionError("Bad handshake from server or unsupported server version.");
+               if (msg[0] == SRV_MSG):
+                    lenrest = netutils.ntohll(msg[1:9]);
+                    msg2,closed = netutils.readall(s._socket,lenrest-2);
+                    msg = msg[9:] + msg2
+                    s.disconnect();
+                    raise ConnectionError("Received error message from server: " + msg);
+               else:
+                    s.disconnect();
+                    raise ConnectionError("Bad handshake from server or unsupported server version.");
           try:
                s._socket.sendall(netutils.htonl(428344082)); # Send our handshake to the server
           except socket.error:
@@ -364,8 +371,16 @@ class REatlas(object):
           if (hasattr(local_file,"write")):
                return s._download_to_file(local_file,remote_file,username);
           elif (type(local_file) is str):
-               with open(local_file,"wb") as f:
-                    return s._download_to_file(f,remote_file,username);
+               try:
+                    with open(local_file,"wb") as f:
+                         return s._download_to_file(f,remote_file,username);
+               except:
+                    try:
+                         os.unlink(local_file);
+                    except:
+                         pass;
+                    raise;
+
           else:
               return s._download_to_string(remote_file,username);
 

@@ -3,7 +3,7 @@
 from __future__ import print_function
 import reatlas_client
 import argparse
-import sys
+import sys,os
 import tempfile
 import numpy
 import numbers
@@ -55,6 +55,19 @@ if (port != None):
 else:
      atlas = reatlas_client.REatlas(server);
 
+# Download the file. If it's a .npz file or one without any of the supported
+# endings, download it to that file.
+# Otherwise, download to a tempfile and convert.
+
+if len(os.path.basename(filename)) < 4:
+     print("Filename must end in one of " + str(choices) + ".",file=sys.stderr);
+     exit(1);
+
+ending = filename[-4:];
+if (ending not in choices):
+     exit(1)
+
+
 if (not atlas.connect_and_login(username=username,password=password)):
           atlas.disconnect()
           print("Invalid username or password",file=sys.stderr);
@@ -64,24 +77,19 @@ if (cutoutuser != None):
 else:
      atlas.prepare_cutout_metadata(cutoutname=cutoutname);
 
-# Download the file. If it's a .npz file or one without any of the supported
-# endings, download it to that file.
-# Otherwise, download to a tempfile and convert.
 
-if len(filename) < 4:
-     filename += ".npz";
+server_filename = "meta_"+cutoutname+".npz";
 
-ending = filename[-4:];
-if (ending not in choices or ending == ".npz"):
-     if ending != ".npz":
-          filename += ".npz"
-     atlas.download_file_and_rename(remote_file="meta_"+cutoutname+".npz",local_file=filename);
-
+if (ending == ".npz"):
+     print("Saving " + filename + ".");
+     atlas.download_file_and_rename(remote_file=server_filename,local_file=filename);
+     atlas.delete_file(filename=server_filename);
      atlas.disconnect();
 else: #Ok, user does not want a .npz file...
  
      buf = tempfile.TemporaryFile();
-     atlas.download_file_and_rename(remote_file="meta_"+cutoutname+".npz",local_file=buf);
+     atlas.download_file_and_rename(remote_file=server_filename,local_file=buf);
+     atlas.delete_file(filename=server_filename);
      atlas.disconnect();
      buf.seek(0);
     
@@ -127,8 +135,9 @@ else: #Ok, user does not want a .npz file...
           sf.field("LONGITUDE",'O',8,0);
           sf.field("IDX1",'N',8,0);
           sf.field("IDX2",'N',8,0);
-          sf.field("CFSR_ONSHORE",'L',1);
-          sf.field("GEBCO_HEIGHT",'O',8);
+          sf.field("ONSHORE",'L',1);
+          sf.field("HEIGHT",'O',8);
+          sf.field("CAPACITY",'O',8,0);
 
           latitudes = meta["latitudes"];
           longitudes = meta["longitudes"];
@@ -143,8 +152,9 @@ else: #Ok, user does not want a .npz file...
                          lat, lon = latitudes[i][j],longitudes[i][j];
                          onshore = bool(meta["onshoremap"][i][j]);
                          height = meta["heights"][i][j];
+                         capacity = 0.0;
                          sf.point(lon,lat);
-                         rec = [lat,lon,i,j,onshore,height];
+                         rec = [lat,lon,i,j,onshore,height,capacity];
                          sf.record(*rec);
           else:
                I = latitudes.shape[0];
@@ -152,8 +162,9 @@ else: #Ok, user does not want a .npz file...
                     lat, lon = latitudes[i],longitudes[i];
                     onshore = bool(meta["onshoremap"][i]);
                     height = meta["heights"][i];
+                    capacity = 0.0;
                     sf.point(lon,lat);
-                    rec = [lat,lon,0,i,onshore,height];
+                    rec = [lat,lon,0,i,onshore,height],capacity;
                     sf.record(*rec);
 
           print("Saving " + filename + "...");
