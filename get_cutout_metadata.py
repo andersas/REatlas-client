@@ -164,7 +164,7 @@ else: #Ok, user does not want a .npz file...
                     height = meta["heights"][i];
                     capacity = 0.0;
                     sf.point(lon,lat);
-                    rec = [lat,lon,0,i,onshore,height],capacity;
+                    rec = [lat,lon,0,i,onshore,height,capacity];
                     sf.record(*rec);
 
           print("Saving " + filename + "...");

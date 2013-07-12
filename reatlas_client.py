@@ -341,6 +341,55 @@ class REatlas(object):
           return s.login(**kwargs);
 
 
+     def add_pv_orientations_by_config_file(s,filename):
+          """ add_pv_orientations_by_config_file(filename):
+               
+               Given a orientation configuration file, add the
+               orientations within it to the current atlas session. """
+          parser = ConfigParser.ConfigParser();
+          parser.read(filename);
+          
+          if (parser.has_section("constant")):
+               slopes = parser.get("constant","slope").split(",");
+               azimuths = parser.get("constant","azimuth").split(",");
+               weights = parser.get("constant","weight").split(",");
+     
+               if (len(slopes)!=len(azimuths) or len(azimuths)!=len(weights)):
+                   raise ValueError("Malformed config file " + filename);
+               slopes = [float(slope) for slope in slopes];
+               azimuths = [float(azimuth) for azimuth in azimuths];
+               weights = [float(weight) for weight in weights];
+               
+               for i in range(len(weights)):
+                    s.add_constant_orientation_function(slope=slopes[i],azimuth=azimuths[i],weight=weights[i]);
+          
+          if (parser.has_section("vertical_tracking")):
+               azimuths = parser.get("vertical_tracking","azimuth").split(",");
+               weights = parser.get("vertical_tracking","weight").split(",");
+               if (len(azimuths) != len(weights)):
+                   raise ValueError("Malformed config file " + filename);
+               azimuths = [float(azimuth) for azimuth in azimuths];
+               weights = [float(weight) for weight in weights];
+               for i in range(len(weights)):
+                    s.add_vertical_axis_tracking_orientation_function(azimuth=azimuths[i],weight=weights[i]);
+ 
+          if (parser.has_section("horizontal_tracking")):
+               slopes = parser.get("horizontal_tracking","slope").split(",");
+               weights = parser.get("horizontal_tracking","weight").split(",");
+               if (len(slopes) != len(weights)):
+                   raise ValueError("Malformed config file " + filename);
+               slopes = [float(slope) for slope in slopes];
+               weights = [float(weight) for weight in weights];
+               for i in range(len(weights)):
+                    s.add_horizontal_axis_tracking_orientation_function(slope=slopes[i],weight=weights[i]);
+
+          if (parser.has_section("full_tracking")):
+               weights = parser.get("full_tracking","weight").split(",");
+               weights = [float(weight) for weight in weights];
+               for i in range(len(weights)):
+                    s.add_full_tracking_orientation_function(weight=weights[i]);
+
+
      def download_file(s,filename,username=""):
           """ download_file(filename,username="")
           
@@ -436,9 +485,16 @@ class REatlas(object):
 
      def _upload_from_file(s,fp,tofile,username):
           
-          filesize = os.path.getsize(fp.name);
+          #filesize = os.path.getsize(fp.name);
+          #filesize = os.fstat(fp.fileno()).st_size;
+          #fp.seek(0);
           
-          fp.seek(0);
+          curr_pos = fp.tell()
+          fp.seek(0,2); # Seek to end of file
+          end_pos = fp.tell();
+          fp.seek(curr_pos);
+
+          filesize = end_pos - curr_pos;
 
           # Select current file on server:
           s._select_current_file(filename=tofile,username=username);
