@@ -65,6 +65,7 @@ if len(os.path.basename(filename)) < 4:
 
 ending = filename[-4:];
 if (ending not in choices):
+     print("Filename must end in one of " + str(choices) + ".",file=sys.stderr);
      exit(1)
 
 

@@ -109,5 +109,8 @@ for f in files:
      name,size = f;
      if (name.startswith(result_name)):
           atlas.delete_file(filename=name);
-
 atlas.disconnect();
+
+
+print("The i'th column in the result corresponds to the i'th capacity layout argument");
+print("given to the conversion and aggregation script.");
