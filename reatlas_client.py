@@ -84,29 +84,18 @@ def translate_GPS_coordinates_to_array_indices(latitude,longitude,latitudes,long
      Returns the tuple (i,j).
      """
 
-     lat = latitudes;
-     lon = longitudes;
+     distances = numpy.sqrt((latitudes - latitude)**2+(longitudes-longitude)**2);
+     minimum = numpy.argmin(distances);
 
-     # objective function in minimization
-     def f(x,gpslat,gpslon):
-          i = int(x[0]) % lat.shape[0];
-          j = int(x[1]) % lat.shape[1];
-          return numpy.sqrt((lat[i][j] - gpslat)**2+(lon[i][j] - gpslon)**2);
+     arg = numpy.unravel_index(minimum,dims=distances.shape);
+
+     ret = []
+
+     for i in arg:
+          ret.append(i);
      
-     result = scipy.optimize.fmin(f,x0=numpy.array([lat.shape[0]/2,lat.shape[1]/2]),args=(latitude,longitude),disp=False);
 
-     # The result might be a negative index or one above the max index.
-     # Translate it back to between 0 and max index
-
-     i = int(result[0]) % lat.shape[0];
-     j = int(result[1]) % lat.shape[1];
-
-     if (i < 0):
-          i = lat.shape[0] - i;
-     if (j < 0):
-          j = lat.shape[1] - j;
-
-     return (i,j);
+     return tuple(ret);
 
 class REatlas(object):
      _protocol_version = 2; # Protocol version, not client version.
@@ -310,10 +299,17 @@ class REatlas(object):
           # Shake hands with server
           msg, closed = netutils.readall(s._socket,11);
           if (closed):
-               raise ConnectionError("Could not connect to RE atlas server.");
+               raise ConnectionError("Could not connect to RE atlas server. ");
           if (msg != "REatlas" + struct.pack('!l',s._protocol_version)):
-               s.disconnect();
-               raise ConnectionError("Bad handshake from server or unsupported server version.");
+               if (msg[0] == SRV_MSG):
+                    lenrest = netutils.ntohll(msg[1:9]);
+                    msg2,closed = netutils.readall(s._socket,lenrest-2);
+                    msg = msg[9:] + msg2
+                    s.disconnect();
+                    raise ConnectionError("Received error message from server: " + msg);
+               else:
+                    s.disconnect();
+                    raise ConnectionError("Bad handshake from server or unsupported server version.");
           try:
                s._socket.sendall(netutils.htonl(428344082)); # Send our handshake to the server
           except socket.error:
@@ -343,6 +339,55 @@ class REatlas(object):
           s.connect();
           s.build_functions(); # s.login should get defined here
           return s.login(**kwargs);
+
+
+     def add_pv_orientations_by_config_file(s,filename):
+          """ add_pv_orientations_by_config_file(filename):
+               
+               Given a orientation configuration file, add the
+               orientations within it to the current atlas session. """
+          parser = ConfigParser.ConfigParser();
+          parser.read(filename);
+          
+          if (parser.has_section("constant")):
+               slopes = parser.get("constant","slope").split(",");
+               azimuths = parser.get("constant","azimuth").split(",");
+               weights = parser.get("constant","weight").split(",");
+     
+               if (len(slopes)!=len(azimuths) or len(azimuths)!=len(weights)):
+                   raise ValueError("Malformed config file " + filename);
+               slopes = [float(slope) for slope in slopes];
+               azimuths = [float(azimuth) for azimuth in azimuths];
+               weights = [float(weight) for weight in weights];
+               
+               for i in range(len(weights)):
+                    s.add_constant_orientation_function(slope=slopes[i],azimuth=azimuths[i],weight=weights[i]);
+          
+          if (parser.has_section("vertical_tracking")):
+               azimuths = parser.get("vertical_tracking","azimuth").split(",");
+               weights = parser.get("vertical_tracking","weight").split(",");
+               if (len(azimuths) != len(weights)):
+                   raise ValueError("Malformed config file " + filename);
+               azimuths = [float(azimuth) for azimuth in azimuths];
+               weights = [float(weight) for weight in weights];
+               for i in range(len(weights)):
+                    s.add_vertical_axis_tracking_orientation_function(azimuth=azimuths[i],weight=weights[i]);
+ 
+          if (parser.has_section("horizontal_tracking")):
+               slopes = parser.get("horizontal_tracking","slope").split(",");
+               weights = parser.get("horizontal_tracking","weight").split(",");
+               if (len(slopes) != len(weights)):
+                   raise ValueError("Malformed config file " + filename);
+               slopes = [float(slope) for slope in slopes];
+               weights = [float(weight) for weight in weights];
+               for i in range(len(weights)):
+                    s.add_horizontal_axis_tracking_orientation_function(slope=slopes[i],weight=weights[i]);
+
+          if (parser.has_section("full_tracking")):
+               weights = parser.get("full_tracking","weight").split(",");
+               weights = [float(weight) for weight in weights];
+               for i in range(len(weights)):
+                    s.add_full_tracking_orientation_function(weight=weights[i]);
 
 
      def download_file(s,filename,username=""):
@@ -375,8 +420,16 @@ class REatlas(object):
           if (hasattr(local_file,"write")):
                return s._download_to_file(local_file,remote_file,username);
           elif (type(local_file) is str):
-               with open(local_file,"wb") as f:
-                    return s._download_to_file(f,remote_file,username);
+               try:
+                    with open(local_file,"wb") as f:
+                         return s._download_to_file(f,remote_file,username);
+               except:
+                    try:
+                         os.unlink(local_file);
+                    except:
+                         pass;
+                    raise;
+
           else:
               return s._download_to_string(remote_file,username);
 
@@ -432,9 +485,16 @@ class REatlas(object):
 
      def _upload_from_file(s,fp,tofile,username):
           
-          filesize = os.path.getsize(fp.name);
+          #filesize = os.path.getsize(fp.name);
+          #filesize = os.fstat(fp.fileno()).st_size;
+          #fp.seek(0);
           
-          fp.seek(0);
+          curr_pos = fp.tell()
+          fp.seek(0,2); # Seek to end of file
+          end_pos = fp.tell();
+          fp.seek(curr_pos);
+
+          filesize = end_pos - curr_pos;
 
           # Select current file on server:
           s._select_current_file(filename=tofile,username=username);
