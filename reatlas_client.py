@@ -10,8 +10,6 @@ import os,sys
 import netutils
 import ConfigParser
 import numpy
-import scipy
-import scipy.optimize
 
 
 JSON_MSG = netutils.htonb(74); # Ascii 'J'
