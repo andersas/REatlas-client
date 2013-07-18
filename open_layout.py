@@ -90,9 +90,11 @@ def open_layout_as_npy(filename,shape):
           fields = sf.fields;
          
           for i in range(len(fields)):
+               #print("Field " + str(i) + ": " + str(fields[i][0]));
                if fields[i][0] in required_fields:
                     required_fields.pop(required_fields.index(fields[i][0]));
-                    idxes[fields[i][0]] = i-1;
+                    ## DeletionFlag has record 0 and is omitted (therefore -1)
+                    idxes[fields[i][0]] = i - 1;
           if (len(required_fields) != 0):
                print("Required records fields missing: " + str(required_fields) + ".",file=sys.stderr);
                exit(1);
@@ -110,6 +112,7 @@ def open_layout_as_npy(filename,shape):
                else:
                     if (i < 0 or i >= shape[0] or j < 0 or j >= shape[1]):
                          print("Point outside cutout: IDX1 = " + str(i) + ", IDX2 = " + str(j) + ".",file=sys.stderr);
+                         print(idxes["IDX1"],idxes["IDX2"],rec[idxes["IDX1"]], rec[idxes["IDX2"]])
                          exit(1);
                     layout[rec[idxes["IDX1"]],rec[idxes["IDX2"]]] = rec[idxes["CAPACITY"]];
 

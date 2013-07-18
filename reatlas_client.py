@@ -38,6 +38,10 @@ def turbineconf_to_powercurve_object(turbineconfigfile):
 
      Returns an object that can be used in the on/offshorepowercurve argument
      for wind conversion.  """
+
+     if (not os.path.exists(turbineconfigfile)):
+          raise RuntimeError("File does not exist.");
+
      config = dict();
      parser = ConfigParser.ConfigParser();
      parser.read(turbineconfigfile);
@@ -59,6 +63,10 @@ def solarpanelconf_to_solar_panel_config_object(panelconfigfile):
           
      Returns an object that can be used as the solar_panel_config argument
      in REatlas PV conversions.  """
+
+     if (not os.path.exists(panelconfigfile)):
+          raise RuntimeError("File does not exist.");
+
      config = dict();
      parser = ConfigParser.ConfigParser();
      parser.read(panelconfigfile);
