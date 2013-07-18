@@ -38,6 +38,10 @@ def turbineconf_to_powercurve_object(turbineconfigfile):
 
      Returns an object that can be used in the on/offshorepowercurve argument
      for wind conversion.  """
+
+     if (not os.path.exists(turbineconfigfile)):
+          raise RuntimeError("File does not exist.");
+
      config = dict();
      parser = ConfigParser.ConfigParser();
      parser.read(turbineconfigfile);
@@ -47,7 +51,7 @@ def turbineconf_to_powercurve_object(turbineconfigfile):
 
      if (len(config["V"]) != len(config["POW"])):
           raise ValueError("V and POW should have equal length.");
-     if (len(config["V"]) < 3):
+     if (len(config["V"]) < 2):
           raise ValueError("You should have at least 2 points on your power curve.");
      return config;
  
@@ -59,6 +63,10 @@ def solarpanelconf_to_solar_panel_config_object(panelconfigfile):
           
      Returns an object that can be used as the solar_panel_config argument
      in REatlas PV conversions.  """
+
+     if (not os.path.exists(panelconfigfile)):
+          raise RuntimeError("File does not exist.");
+
      config = dict();
      parser = ConfigParser.ConfigParser();
      parser.read(panelconfigfile);
@@ -439,7 +447,7 @@ class REatlas(object):
           Arguments:
                filename: Name of file to upload.
                username: If given, upload to this users folder instead of your own.  """
-          s.upload_from_file_and_rename(filename,filename,username);
+          s.upload_from_file_and_rename(filename,os.path.basename(filename),username);
      
      def upload_from_file_and_rename(s,local_file,remote_file,username=""):
           """ upload_from_file(local_file,remote_file,username=""):
