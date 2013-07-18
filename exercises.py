@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 ### Solution to the exercices
 
 server_name = "pepsimax.imf.au.dk"
-username = "anders"
-password = "Chung9Quah"
+username = "username"
+password = "XXXXX"
 
 
 # Exercice 1:
@@ -76,12 +76,12 @@ print("There are " + str(Denmark_points) + " points in Denmark");
 
 # Submit a dummy job
 
-#atlas.submit_dummy_job()
+atlas.submit_dummy_job()
 
 # Submit a dummy job without being notified by mail when it's done:
 
 atlas.notify_by_mail(notify=False)
-#dummy_job_id = atlas.submit_dummy_job();
+dummy_job_id = atlas.submit_dummy_job();
 
 # Reset notification setting
 
@@ -90,10 +90,8 @@ atlas.notify_by_mail(notify=True);
 # Wait for the last dummy job to finish
 
 print("Waiting for dummy_job")
-#atlas.wait_for_job(job_id=dummy_job_id);
+atlas.wait_for_job(job_id=dummy_job_id);
 print("Job is done");
-
-
 
 
 
@@ -104,8 +102,6 @@ print("##################");
 print("### Exercice 2 ###");
 print("##################");
 print("");
-
-
 
 # First figure out where 56.9 degrees latitude, 7.5 degrees longitude is
 # in the Denmark cutout:
