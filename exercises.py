@@ -23,7 +23,11 @@ print("");
 
 atlas = reatlas_client.REatlas(server_name);
 
-atlas.connect_and_login(username=username,password=password)
+logged_in = atlas.connect_and_login(username=username,password=password)
+
+if (not logged_in):
+     print("Could not log in!");
+     exit(1);
 
 # Use the echo function:
 
