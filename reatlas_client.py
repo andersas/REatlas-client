@@ -447,7 +447,7 @@ class REatlas(object):
           Arguments:
                filename: Name of file to upload.
                username: If given, upload to this users folder instead of your own.  """
-          s.upload_from_file_and_rename(filename,filename,username);
+          s.upload_from_file_and_rename(filename,os.path.basename(filename),username);
      
      def upload_from_file_and_rename(s,local_file,remote_file,username=""):
           """ upload_from_file(local_file,remote_file,username=""):
