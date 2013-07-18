@@ -20,6 +20,7 @@ parser.add_argument("--username",nargs="?",type=str,help="REatlas user name");
 parser.add_argument("--password",nargs="?",type=str,help="REatlas password");
 parser.add_argument('cutoutname',nargs=1,type=str,help="Name of the cutout");
 parser.add_argument('--cutoutuser',nargs="?",type=str,help="Name of the owner of the cutout")
+parser.add_argument('--name',nargs="?",type=str,help="Name of the conversion")
 parser.add_argument("panelconf",nargs=1,type=str,help="Path to the solar panel config file");
 parser.add_argument("orientationconf",nargs=1,type=str,help="Path to a file containing orientation specifications.");
 parser.add_argument("capacitylayout",nargs="+",type=str,help="Path to capacity layout to use (.npy, .mat, .csv, .shp file)");
@@ -33,6 +34,7 @@ username = args.username;
 password = args.password;
 cutoutname = args.cutoutname[0];
 cutoutuser = args.cutoutuser
+conversion_name = args.name;
 
 panelconf = reatlas_client.solarpanelconf_to_solar_panel_config_object(args.panelconf[0]);
 orientationconf = args.orientationconf[0];
@@ -78,7 +80,11 @@ layout_files = [];
 for layout in capacitylayouts:
      layout_files.append(open_layout.open_layout_as_npy(layout,shape))
 
-conversion_name = atlas._get_unique_npy_file();
+if (conversion_name == None):
+     conversion_name = atlas._get_unique_npy_file();
+else:
+     conversion_name += ".npy";
+
 conversion_name_base = conversion_name[:-4];
 
 print("Uploading layout(s)...");
