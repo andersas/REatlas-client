@@ -47,7 +47,7 @@ def turbineconf_to_powercurve_object(turbineconfigfile):
 
      if (len(config["V"]) != len(config["POW"])):
           raise ValueError("V and POW should have equal length.");
-     if (len(config["V"]) < 3):
+     if (len(config["V"]) < 2):
           raise ValueError("You should have at least 2 points on your power curve.");
      return config;
  
