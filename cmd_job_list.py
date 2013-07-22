@@ -55,5 +55,5 @@ for job in jobs:
           print("Your job " + str(job["job_id"]) + " (" + job["name"] + ") is expected done in " + ETA + ".");
 
 if (not user_has_a_job_in_queue):
-     print("You have not jobs waiting.");
+     print("You have no jobs waiting.");
 
