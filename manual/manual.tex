@@ -1,0 +1,415 @@
+\documentclass[a4paper,10pt]{article}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+
+\usepackage{amsmath,amssymb}
+\usepackage{color,graphicx}
+\usepackage{cprotect}
+
+\usepackage{listings}
+
+\title{RE atlas manual}
+\author{Anders A. Søndergaard}
+
+\def\changemargin#1#2{\list{}{\rightmargin#2\leftmargin#1}\item[]}
+     \let\endchangemargin=\endlist 
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\section{Brief introduction to the REatlas and some terminology}
+
+The REatlas is a computer program designed to convert
+weather data into production profiles for wind and photovoltaics (solar) power
+technologies. It has a server part and a client part. The server part
+runs on a big computer, located at Aarhus University, and does the actual computation, while the client
+part can be run on any personal computer.
+
+The REatlas server is what is known as a \emph{Remote Procedure Call} (RPC)
+server, i.e. it is a server that allows you to execute function calls
+on it, as if they were executed on the client computer.
+
+The REatlas client is simply a library for setting up and handling
+the connection and underlying protocol for the RPC server.
+
+\subsection{Cutouts}
+
+The weather data is global and consists of large arrays of meterological
+parameters from the CFSR\cite{cfsr}, such as wind speed and sun light intensity.
+Each entry, or \emph{grid cell} in such an array is identified by the latitude and longitude of its center, and it represents a
+geographical localtion somewhere in the world.
+
+Because of the size of the data set, you
+typically will not want to work with all of it at the same time,
+since it will take several days to convert it all to production timeseries.
+
+Therefore, you cut out some part of the world that you are interested in.
+This could for example be Europe, USA, China or Denmark.
+The smaller the area, the faster the conversion.
+
+A \emph{cutout} is such a selection of an area of interest. 
+Cutouts can either be box shaped (with sides of constant latitude/longitude) or a collection of individual grid cells.
+
+\subsection{Aggregation and capacity layouts}
+
+The main purpose of the atlas is to generate time series
+for regions of interest, e.g. countries or continents.
+
+When all the grid cells in a cutout are converted,
+a new grid (i.e. array) of production values are created
+with the same dimensions as the raw data arrays.
+
+To get a time series (under the \emph{copper plate assumption})
+of the region of interest, a \emph{capacity layout} is needed.
+This is simply an array with the same shape as the
+cutout, where each grid cell is assigned a \emph{weight}.
+This weight could e.g. be the installed capacity in MW or the number
+of turbines/solar panels per cell.
+
+An \emph{aggregation} is the process of multiplying all grid cells
+with the corresponding weight in a capacity layout and summing up
+the resulting values.
+
+If the capacity layout e.g. contains 1's everywhere in the region,
+and 0's eleswhere, a time series for the region will be obtained
+with capacity uniformly distributed across it.
+
+\section{Installing the client}
+
+The client can be downloaded from github.com/AUESG.
+It requires Python and Numpy to run, and optionally scipy (for Matlab support)
+and pyshp (for GIS support). Python can be downloaded from python.org,
+and Numpy can be downloaded from numpy.org.
+
+To use the REatlas, you must have an account on the server.
+
+To connect to the server, you must be on the Aarhus University
+internal network. If you're running the client from outside
+the intranet, you have 3 options:
+
+\begin{itemize}
+     \item Tunnel through pepsi (you need an account on pepsi for this):
+
+          \verb+ssh -L 65535:pepsimax.imf.au.dk:65535 pepsi.imf.au.dk+
+     \item Tunnel through NFIT's LogInFArm (you need an NFIT account for this):
+
+          \verb+ssh -L 65535:pepsimax.imf.au.dk:65535 lifa.phys.au.dk+
+     \item Use the AU VPN solution (you need an AU VPN account for this).
+
+\end{itemize}
+Note that if you use the ssh options to tunnel through AU firewalls,
+you should connect the REatlas client to "localhost" instead of using
+the server name.
+
+
+\section{Client commands}
+
+The client consists of a client library, and a collection of command line
+utilities based on the library. These command line utilities can be
+used without any programming effort.
+
+
+%\begin{lstlisting}
+%print("Hello, world!");
+%\end{lslisting}
+
+\subsection{Available commands}
+
+\subsubsection{cmd\_list\_cutouts.py} Get a list of existing cutouts.
+\ \\ \ \\ \cprotect\framebox{\begin{minipage}{\textwidth}
+Example: \verb+python cmd_list_cutouts.py servername+
+\end{minipage}}
+\subsubsection{cmd\_get\_cutout\_metadata.py} Download metadata for a REatlas cutout in either .npz, .csv, .mat or .shp format. npz is a numpy (Python) format, .csv is a comma separated text file, .mat is for Matlab files, and .shp is the Esri shape file format, used by e.g. QGis or ArcMap.
+\ \\ \ \\ \cprotect\framebox{\begin{minipage}{\textwidth}
+Example: Download all metadata for the Denmark cutout under auesg to a csv file.
+ \begin{verbatim}
+python cmd_get_cutout_metadata.py servername Denmark \
+/path/to/data/Denmark.csv --cutoutuser auesg
+\end{verbatim}
+\end{minipage}}
+\subsubsection{cmd\_convert\_and\_aggregate\_wind.py} Script for starting a wind conversion on a cutout. Requires a capacity layout in either .npy, .csv, .mat or .shp format.
+\ \\ \ \\ \cprotect\framebox{\begin{minipage}{\textwidth}
+Example: Convert wind for Denmark with a Vestas 90 3 MW turbine offshore
+and a Siemens SWT 2.3 MW turbine onshore, and aggregate with two layouts (in different formats):
+\begin{verbatim}
+python cmd_convert_and_aggregate_wind.py servername Denmark \ 
+--cutoutuser auesg --name Windconversion1
+TurbineConfig/Siemens_SWT_2300kW.cfg \
+TurbineConfig/Vestas_V90_3MW.cfg \ 
+layout1.shp layout2.csv
+\end{verbatim}
+\end{minipage}}
+\subsubsection{cmd\_convert\_and\_aggregate\_PV.py} Script for starting a PV conversion on a cutout. Requires a capacity layout in either .npy, .csv, .mat or .shp format.
+\ \\ \ \\ \cprotect\framebox{\begin{minipage}{\textwidth}
+Example: Convert PV for Denmark with a Scheuten 215IG solar panel,
+with a fixed orientation:
+\begin{verbatim}
+python cmd_convert_and_aggregate_PV.py servername Denmark \ 
+--cutoutuser auesg --name PVconv1 \
+SolarPanelData/Scheuten215IG.cfg \
+orientation_examples/constant.cfg \
+layout.npy
+\end{verbatim}
+\end{minipage}}
+\subsubsection{cmd\_get\_result.py} Waits for and downloads the result of a conversion and aggregation.
+\ \\ \ \\ \cprotect\framebox{\begin{minipage}{\textwidth}
+Example: Download the result from the above PV conversion to a matlab file.
+\begin{verbatim}
+python cmd_get_result.py servername job_id PVconv1 PVresult.mat
+\end{verbatim}
+\end{minipage}}
+\subsubsection{cmd\_create\_CFSR\_rectangular\_cutout.py} Script for cutting out a rectangular region. Takes southwesternmost and northeasternmost point in the rectangle as arguments. Note: This takes very long time, and you may not be allowed to execute this function.
+\ \\ \ \\ \cprotect\framebox{\begin{minipage}{\textwidth}
+Example: Create a cutout that contains Germany:
+\begin{verbatim}
+python cmd_create_CFSR_rectangular_cutout.py servername \ 
+Germany 46.6 3.5 55.5 16.6
+\end{verbatim}
+\end{minipage}}
+\subsubsection{cmd\_create\_CFSR\_pointwise\_cutout.py} Script for cutting out a pointwise region. Takes a list of GPS coordinates of points to cut out. Note: Making a new cutout takes about 24 hours, where the server cannot be used for anything else. Regardless of cutout size.
+\ \\ \ \\ \cprotect\framebox{\begin{minipage}{\textwidth}
+Example: Create a cutout that contains Aarhus, Copenhagen and Rome:
+\begin{verbatim}
+python cmd_create_CFSR_pointwise_cutout.py servername \ 
+AarhusCopenhagenRome 56.2,10.2 55.7,12.5 42.0,12.5
+\end{verbatim}
+\end{minipage}}
+\subsubsection{cmd\_job\_list.py} Get a list of your currently scheduled jobs.
+\ \\ \ \\ \cprotect\framebox{\begin{minipage}{\textwidth}
+Example: See your queued jobs and ETA's along with the total workload of the server:
+\begin{verbatim}
+python cmd_job_list.py servername
+\end{verbatim}
+\end{minipage}}
+\subsubsection{cmd\_cancel\_jobs.py} Cancel jobs on the REatlas server. Note: Running jobs cannot be canceled.
+\ \\ \ \\ \cprotect\framebox{\begin{minipage}{\textwidth}
+Example: Cancel all your jobs:
+\begin{verbatim}
+python cmd_cancel_jobs.py servername
+\end{verbatim}
+\end{minipage}}
+\subsubsection{cmd\_shutdown\_atlas.py} Command for shutting down the atlas. All pending jobs are executed before the atlas closes down. Only useful for maintenance tasks. Can only be run by privileged users.
+\ \\ \ \\ \cprotect\framebox{\begin{minipage}{\textwidth}
+Example:
+\begin{verbatim}
+python cmd_shutdown_atlas.py servername
+\end{verbatim}
+\end{minipage}}
+
+\subsection{Note about working with capacity layouts and shapefiles}
+
+A capacity layout is an array in the same shape as the layout for
+which it is meant to be applied.
+
+The command line utility \verb+cmd_get_cutout_metadata.py+ downloads
+arrays in this shape, containing latitude, longitude, on/offshore and
+depth/height data. You can repurpose these arrays for making
+capacity layouts.
+
+When you download the metadata as a shapefile, you can edit
+this shapefile (e.g. with ArcGis or quantum gis, qgis).
+The shapefile contains points representing the center of each grid cell.
+The attribute table contains the field ``CAPACITY''.
+By changing this field, you can assign a capacity to each grid cell
+and use the shapefile as input capacity layout. See figure \ref{fig:qgis}.
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=\textwidth]{qgis.png}
+\end{center}
+\caption{Using qgis to set the capacity of a grid cell to 7.1.}
+\label{fig:qgis}
+\end{figure}
+
+
+\section{Usage examples and exercises (client library)}
+
+In this section, a few excercises in using the REatlas client library are given.
+A script that solves the problems can be found in the exercises.py file.
+
+Before trying the exercises, you should have some sort of network connection
+to the REatlas, along with an account.
+
+Using interactive python (IPython) is recommended, or alternatively
+writing a Python script.
+
+Note that the RPC functions require their full keyword arguments
+specified. I.e. positional arguments does not work.
+The reason for this has something to do with the underlying RPC protocol 
+for sending function arguments.
+
+
+\subsection{Exercise 1: Familiarize youself with the atlas}
+
+In this exercise, you will connect to the REatlas and take a look around.
+
+\begin{enumerate}
+     \item Download the REatlas client software from github.com/AUESG.
+     \item Login to the REatlas (use the connect\_and\_login function).
+     \item Succesfully call the echo() and generate\_error() functions.
+           generate\_error() will give you an example error message.
+     \item Get a list of all the cutouts that are available on the server.
+           How much space does Europe and Denmark take up?
+           (answer: 133 GB and 3 GB, respectively)
+     \item Download all the metadata for Europe and/or Denmark.
+           (Hint: use the prepare\_cutout\_metadata() and download\_file() functions).
+           How many points are there in the Europe/Denmark cutout?
+           (Hint: derive this from the shape of the latitude/longitude array.
+           Answer: 21279 and 600, respectively)
+      \item Start a dummy job (a job that does nothing for 15 seconds) on
+           the server, and read the email you get when it finishes.
+           Start another dummy job without receiving an email when it finishes.
+           (hint: use the notify\_by\_mail() function).
+
+      \item Use the wait\_for\_job() function to wait for a dummy job to finish.
+           How could the wait\_for\_job() function be useful (in a script)?
+
+\end{enumerate}
+
+\subsection{Exercise 2: Wind conversion}
+
+In this exercise, you will perform a wind conversion on the REatlas server,
+and you will create example capacity layouts.
+     
+\begin{enumerate}
+     \item Find out how much power a Vestas V90 3MW turbine would have produced
+           on January 13, 1992 at 05.00 UTC if it were placed
+           on 56.9 degrees latitude, 7.5 degrees longitude.
+           (answer: 2.9 MW). According to the REatlas (and to Google maps),
+           is this point onshore or offshore?
+           According to the REatlas, how deep is the water in this grid cell?
+           (answer: 29 meters)
+
+           Hints:
+           \begin{enumerate}
+               \item Load the Vestas V90 3MW config file with the
+                    REatlas client provided turbineconf\_to\_powercurve\_object() function.
+               \item Make a capacity layout for Denmark/Europe
+                     consisting of only 0's except for the grid cell
+                     containing 56.9 degrees latitude, 7.5 degrees longitude.
+                     This grid cell should contain a 1.
+                     Applying this capacity layout effectively gives
+                     the timeseries for that single grid cell.
+
+                \item You can find the index of that grid cell by using the
+                     translate\_GPS\_coordinates\_to\_array\_indices() function
+                     provided by the REatlas client on the metadata for the cutout.
+                     For Denmark, 56.9,7.5 degrees has the index (9,12).
+                \item Upload the capacity layout with upload\_file()
+                \item Select the cutout you want to work with with the 
+                     select\_cutout() function.
+                \item Start a wind conversion with convert\_and\_aggregate\_wind().
+                \item Download the resulting file, and use the ``dates'' metadata file to find the timeseries index for 1992 at 05:00 utc.
+                     numpy.where and datetime.datetime will be useful for this purpose.
+           \end{enumerate}
+      \item Get a normalized time series of wind production for Denmark in the 
+           period 1979-2010 for a Vestas V90 3 MW turbine if it were
+           distributed uniformly in all onshore grid cells.
+      \item Get two normalized timeseries using only one call to the
+           convert\_and\_aggregate\_wind() function. Use the capacity layouts
+           from the previous two exercises.
+
+\end{enumerate}
+
+\subsection{Exercise 3: PV conversion}
+
+In this exercise, you will perform a PV conversion on the REatlas server,
+and you will create example capacity layouts.
+You will compare a solar cell mounted in a fixed position to 
+a distribution of orientations, and to a solar panel that tracks the sun.
+
+
+\begin{enumerate}
+     \item As an approximation, assume that a side of a house can either face
+          east, west or south (and that nobody installs solar panels on a north facing side), and that all roofs have a slope of 45 degrees.
+          Perform a PV conversion with the Scheuten 215IG roof-mounted panel
+          distributed equally in all Danish onshore grid cells
+          with a distribution of 33 \% of panels facing west, 33\% facing east
+          and 34\% facing south (azimuth: 90, -90 and 0 degrees, respectively).
+          
+          Hint: This follows the same procedure as for wind conversion,
+          except panel config files are loaded with the
+          solarpanelconf\_to\_solar\_panel\_config\_object() function,
+          and that solar panel orientations must also be specified before
+          calling convert\_and\_aggregate\_pv().
+
+          You can add orientations to PV conversion with the add\_*\_orientation\_function() functions.
+          Each call to convert\_and\_aggregate\_pv resets the choice of orientations. This is also true for reset\_orientations().
+          You can use the latter for undoing mistakes.
+
+     \item Perform another PV conversion and aggregation for onshore Denmark
+           where all panels point straight south and have a slope of 32 degrees.
+           Perform another PV conversion and aggregation for onshore Denmark
+           where each panel tracks the sun.
+      \item Plot (with e.g. matplotlib.pyplot) sample days for the three
+           different conversions and compare them.
+\end{enumerate}
+
+
+\section{Available functions}
+
+\subsection{Overview of client built-in helper functions}
+
+Apart from providing the \verb+REatlas+ object, the REatlas client
+also provides these functions:
+
+\subsubsection{turbineconf\_to\_powercurve\_object()}
+
+Used for loading turbine configuration files in as objects. These objects
+can be used as arguments in wind conversion calls.
+
+\subsubsection{solarpanelconf\_to\_solar\_panel\_config\_object()}
+
+Used for loading solar panel configuration files in as objects.
+These objects can be used as arguments in PV conversion calls.
+
+\subsubsection{translate\_GPS\_coordinates\_to\_array\_indices()}
+
+Can be used to find the grid cell nearest some point given by GPS coordinates.
+
+\subsubsection{Misc.}
+
+Apart from this, the client also provides a few helper functions in the
+REatlas object itself. These are:
+
+\begin{itemize}
+     \item \textbf{download\_file()} Used to download files from the server.
+     \item \textbf{upload\_file()} Used to upload files to the server.
+     \item \textbf{connect\_and\_login()} Used in interactive mode to connect and login in one go. If you just \verb+connect()+, the connection times out faster than you can type in your login details. This also calls \verb+build_functions()+.
+     \item \textbf{build\_functions()} Initially, the client does now know about the RPC functions available. This method queries the server for available RPC functions and adds them as local class methods.
+     \item \textbf{add\_pv\_orientations\_by\_config\_file()} Parses a configuration file of orientations and adds them via the add\_*\_orientation\_function() RPC functions. 
+\end{itemize}
+
+
+\subsection{Overview of RPC methods}
+
+The following functions are defined on the REatlas server,
+and can be called as is they were on the client computer.
+
+To call them, you must first call the \verb+REatlas.build_functions()+ or
+\verb+REatlas.connect_and_login()+ methods. 
+
+\begin{changemargin}{-1.5cm}{1.5cm}
+\input{unprivileged_methods.tex}
+\end{changemargin}
+
+\subsection{Overview of privileged RPC methods}
+
+The following functions are also available,
+but requres privileged access to execute.
+
+\begin{changemargin}{-1.5cm}{1.5cm}
+\input{privileged_methods.tex}
+\end{changemargin}
+
+
+\newpage 
+
+\bibliography{bib/bibliography.bib}{}
+\bibliographystyle{amsplain}
+
+\end{document}

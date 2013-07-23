@@ -1,0 +1,679 @@
+\subsubsection{\_select\_current\_file()}
+
+
+\begin{verbatim}
+ _select_current_file(filename,username="",intent="")
+
+               filename: Filename to select.
+               username: If given, select a file in that users directory
+                         instead of your own.
+               intent: If given and equal to "download",
+                       return an error if the file does not exist.
+
+          Selects which binary file to send to or receive from the server.
+          These are send as raw binary instead of through JSON-RPC.
+
+          
+\end{verbatim}
+\subsubsection{delete\_file()}
+
+
+\begin{verbatim}
+ delete_file(filename,username="")
+
+               filename: Name of file to delete.
+               username: If given, delete the file in this users directory instead of your own.
+          
+          Example:
+               delete_file(filename="foo.npy",username="someguy")
+
+          Delete foo.npy under someguys folder.
+
+          Returns True on success.
+          
+\end{verbatim}
+\subsubsection{list\_files()}
+
+
+\begin{verbatim}
+ list_files(username=""):
+
+          Return a list of your files and their sizes in bytes.
+
+          Arguments:
+               username: If given, list this users files instead of your own.
+
+          Example:
+               list_files()
+          returns a list of all your files on the server.
+
+          
+\end{verbatim}
+\subsubsection{login()}
+
+
+\begin{verbatim}
+ Log in to the server with supplied credentials. Returns True
+          on success, and False on invalid credentials.
+          
+          Keyword arguments:
+               username
+               password
+          
+          It is a good idea to login immediately after a connection is made,
+          as the server times out very quickly if no user is logged in.
+\end{verbatim}
+\subsubsection{job\_priority()}
+
+
+\begin{verbatim}
+ Set or get current priority level.
+          
+          job_priority(priority=None) -> int
+
+          Sets priority level of current session to priority.
+          Any jobs submitted afterwards will have this priority.
+          Priority must be 0, 1 or 2. The higher the number, the higher the priority.
+          If not specified, only return current priority level.
+
+          Note: If priority exceeds the users max_priority setting,
+          this call sets the priority level to max_priority.
+          
+          
+          Examples:
+               job_priority()
+               1
+
+          Your jobs will be submitted with job priority 1.
+
+               job_priority(priority=2)
+               1
+          You tried to set a priority level of 2, but your maximum allowed
+          priority is 1. 
+          
+          
+\end{verbatim}
+\subsubsection{notify\_by\_mail()}
+
+
+\begin{verbatim}
+ Gets/sets notify option of current session
+         
+          notify_by_mail(s,notify=None) -> Bool
+
+          Notify must be None, False or True. If None,
+          only return current notification setting.
+          If True or False, set current notification setting
+          to True or False, respectively.
+
+          If the notification setting is True, jobs you create will send
+          you a notification email when done. 
+          
+          Example:
+               notify_by_mail(notify=False)
+               False
+          Jobs you submit during this session will no longer send an
+          email to you when done.
+          
+          
+\end{verbatim}
+\subsubsection{\_get\_available\_methods()}
+
+
+\begin{verbatim}
+ Return a list of JSON-RPC methods (functions) that
+          the server accepts. 
+\end{verbatim}
+\subsubsection{\_get\_method\_docstrings()}
+
+
+\begin{verbatim}
+ Returns a dictionary of Python docstrings for the
+          methods provided by the server. 
+\end{verbatim}
+\subsubsection{\_get\_server\_endianness()}
+
+
+\begin{verbatim}
+ Gets the byte order used by the server CPU 
+          
+          _get_server_endianness() -> str
+
+          Returns:
+               'little' if the server is a little endian machine or
+               'big' if the server is a big endian machine.
+\end{verbatim}
+\subsubsection{echo()}
+
+
+\begin{verbatim}
+ echo(message=""):
+               returns message. 
+\end{verbatim}
+\subsubsection{generate\_error()}
+
+
+\begin{verbatim}
+ Generates an example error. 
+\end{verbatim}
+\subsubsection{list\_cutouts()}
+
+
+\begin{verbatim}
+ Returns a list of tuples with cutouts and used space.
+          
+               list_cutouts(all_users=False,loaded=False)
+
+          If all_users is True, then list cutouts of all users
+          instead of only the current user.
+
+          If loaded is True, then list the cutouts loaded in the ramdisk
+          instead of those on the hard disk.
+          This requires super user privileges.
+
+          Each cutout is given as user/cutout_name. Entries containing
+          just user without /cutout_name gives the total space used by that users cutouts. 
+\end{verbatim}
+
+\subsubsection{submit\_dummy\_job()}
+
+
+\begin{verbatim}
+ 
+          Queue a job on the server that does nothing for 15 seconds.
+          No arguments.
+          
+\end{verbatim}
+\subsubsection{get\_queued\_job\_time()}
+
+
+\begin{verbatim}
+
+          Returns the estimated time (in seconds) of work currently
+          in the queue by user name as a dictionary. 
+
+          If you're not privileged, it only returns the estimated time
+          your jobs account for and the total time. 
+          
+          Example:
+               get_queued_job_time()
+               {u'TOTAL': 3600,
+                u'jens': 180}
+          If your username is jens, you have jobs worth of 180 seconds in the queue.
+          There is a total of 3600 seconds of jobs currently waiting.
+          
+          
+\end{verbatim}
+\subsubsection{get\_estimated\_time\_before\_completion\_of\_jobs()}
+
+
+\begin{verbatim}
+ Get estimated time for a specific job to be done.
+          
+          Considering all queued jobs, return the estimated
+          time (in seconds) before a specific job completes.
+
+          Arguments (optional):
+               job_id: ID of the job to get an estimate for.
+                       If not given, return a list of time left for all jobs.
+
+          If job_id is specified and no job has that job id
+          (e.g. if it is finished), then this returns None.
+
+          Note: time estimates are rather rough.
+
+          Example:
+               timings = get_estimated_time_before_completion_of_jobs()
+               timings[33]
+               500
+
+          Here you see that job 33 is estimated to be done in 500 seconds.
+          If this is larger than the time estimate for job 33, this means
+          that the job is waiting for other jobs to finish.
+          
+\end{verbatim}
+\subsubsection{list\_queued\_jobs()}
+
+
+\begin{verbatim}
+ Get a list of jobs in queue and some info.
+
+          No arguments.
+
+          Returns a list of jobs.
+          If you are not privileged, you will only see your own jobs.
+          Each entry is a dictionary with the keys:
+               user: Username of the job owner.
+               name: Name of the job.
+               job_id: ID of the job.
+               time_estimate: Estimated job running time (in seconds).
+               ETA: Estimated time left before job completion (in seconds).
+
+          Note: time estimates are rather rough.
+          
+\end{verbatim}
+\subsubsection{wait\_for\_job()}
+
+
+\begin{verbatim}
+ Waits (i.e. doesn't return before) job completes.
+     
+          Arguments:
+               job_id: Id of the job to wait for.
+               timeout: Wait for at most this many seconds.
+                    Defaults to 3600 (1 hour).
+          
+          When the waiting is over, 
+          the return value is True if the job is done, False otherwise. 
+          
+          Example:
+               wait_for_job(job_id=33)
+               [... nothing happens until job 33 is done,
+                    or an hour has passed ...]
+               False
+
+          Indicates that the job is not done yet, and you should call
+          wait_for_job again if you want to wait for it.
+          
+\end{verbatim}
+\subsubsection{cancel\_jobs\_of\_user()}
+
+
+\begin{verbatim}
+ Cancel all jobs of a user.
+          
+          Without any arguments, this function cancels all your jobs
+          that are waiting in the queue.
+
+          Arguments:
+               username: If given, cancel the specified users jobs instead. 
+\end{verbatim}
+\subsubsection{translate\_GPS\_coordinates\_to\_CFSR\_index()}
+
+
+\begin{verbatim}
+ Find the CFSR indices of given GPS coordinates.
+          
+          translate_GPS_coordinates_to_CFSR_index(latitudes,longitudes)
+               -> [CFSRindex_0, CFSRindex_1]
+
+          Arguments:
+               latitudes and longitudes are lists of numbers corresponding
+               to the requested GPS coordinates.
+               latitudes[i] and longitudes[i] should be the GPS latitude
+               and longitude of point i.
+
+          Returns: A 2-element list of lists of first and second CFSR indices.
+          I.e. [[latitude0,latitude1,...], [longitude0,longitude1,...]]. 
+          
+          Example:
+               translate_GPS_coordinates_to_CFSR_index(latitudes =[55,56],
+                                                       longitudes=[7 , 6])
+          [[464, 467], [22, 19]]
+
+          This shows that 55 degrees north, 7 degrees east has the CFSR
+          index 464,22 and the point 56,6 has index 467,19
+          
+\end{verbatim}
+\subsubsection{cutout\_CFSR\_rectangular\_by\_GPS\_coordinates()}
+
+
+\begin{verbatim}
+ Cut out a rectangle of the CFSR data based on GPS coordinates.
+          
+          Functionally identical to CFSR_rectangular_cutout_by_CFSR_indices,
+          but southwest and northeast should be GPS coordinates instead of 
+          CFSR indices. The first entry in southwest/northeast is the latitude
+          and the second is the longitude.
+         
+          This method simply translates the GPS coordinates to
+          CFSR indices via the translate_GPS_coordinates_to_CFSR_index method
+          before calling CFSR_rectangular_cutout_by_CFSR_indices.
+          
+\end{verbatim}
+\subsubsection{cutout\_CFSR\_rectangular\_by\_CFSR\_indices()}
+
+
+\begin{verbatim}
+ Cut out a rectangle of the CFSR data based on CFSR indices.
+
+               CFSR_rectangular_cutout_by_CFSR_indices(name,southwest,northeast,
+                    firstyear=None,lastyear=None,firstmonth=None,lastmonth=None,
+                    double=False,nowind=False,nopv=False) -> int or None
+
+               name: Name of the cutout
+               southwest, northeast: lists of CFSR indices of the southwesternmost
+                    and northeasternmost points in the rectangle.
+                    These should be 2-element lists of integers.
+               firstyear,firstmonth,lastyear,lastmonth: If specified,
+                         these set the temporal range of the cutout.
+                         E.g. if firstyear=2000, only use from 2000 and onwards.
+                         If lastyear=2004, only use data before 2004.
+               double: If True, dump the cutout in double precision. This requires
+                       super user privileges.
+               nowind: If True, don't cut out data needed for wind conversion
+               nopv: If True, don't cut out data needed for photovoltaics conversion
+
+              Returns the job id of the cutout job submitted to the queue,
+              or None if the queue is closed or full.
+                       
+\end{verbatim}
+\subsubsection{cutout\_CFSR\_individual\_points\_by\_GPS\_coordinates()}
+
+
+\begin{verbatim}
+ Cut out individual CFSR grid cells based on GPS coordinates.
+          
+          CFSR_individual_cutout_by_GPS_coordinates(name,latitudes,longitudes,
+               firstyear=None,lastyear=None,firstmonth=None,lastmonth=None,
+               double=False,nowind=False,nopv=False)
+     
+          Translate latitudes and longitudes to CFSR indices with
+          translate_GPS_coordinates_to_CFSR_index() and call
+          CFSR_individual_cutout_by_CFSR_indices() with the given arguments
+          and the translated indices.
+          
+          
+          Example:
+               cutout_CFSR_individual_points_by_GPS_coordinates(name="test",
+                    latitudes=[55,56],longitudes=[7.5,9])
+
+               cuts out two points 55,7.5 and 56,9 in GPS coordinates.
+          
+          
+\end{verbatim}
+\subsubsection{cutout\_CFSR\_individual\_points\_by\_CFSR\_indices()}
+
+
+\begin{verbatim}
+ Cut out individual CFSR grid cells based on CFSR indices.
+
+          CFSR_individual_cutout_by_CFSR_indices(s,name,
+               first_indices,second_indices,
+               firstyear=None,lastyear=None,firstmonth=None,lastmonth=None,
+               double=False,nowind=False,nopv=False) -> int or None
+
+               name: Name of the cutout
+               first_indices,second_indices: Arrays of CFSR first and second indices.
+                    The i'th point should have index first_indices[i],second_indices[i].
+               firstyear,firstmonth,lastyear,lastmonth: If specified,
+                         these set the temporal range of the cutout.
+                         E.g. if firstyear=2000, only use from 2000 and onwards.
+                         If lastyear=2004, only use data before 2004.
+               double: If True, dump the cutout in double precision. This requires
+                       super user privileges.
+               nowind: If True, don't cut out data needed for wind conversion
+               nopv: If True, don't cut out data needed for photovoltaics conversion
+
+              Returns the job id of the cutout job submitted to the queue,
+              or None if the queue is closed or full.  
+              
+              Example:
+               cutout_CFSR_individual_points_by_CFSR_indices(name="test",
+                    first_indices=[464, 467], second_indices=[22, 19]);
+
+                    cuts out the CFSR points 464,22 and 467,19 and give
+                    it the name "test".
+              
+\end{verbatim}
+\subsubsection{delete\_cutout()}
+
+
+\begin{verbatim}
+ Delete a cutout
+          
+          delete_cutout(cutoutname,username=None)
+
+          Delete cutout called cutoutname. If username is not specified, a cutout
+          under the current user is deleted.
+          If username (a string) is specified, delete that users cutout
+          with that name.
+
+          Deleting other users cutouts require super user privileges.
+          
+          Example:
+               delete_cutout(cutoutname="test")
+
+               deletes your cutout named test.
+          
+          
+\end{verbatim}
+\subsubsection{prepare\_cutout\_metadata()}
+
+
+\begin{verbatim}
+ Makes available all meta data for a given cutout in your server directory.
+          
+          Arguments:
+               cutoutname: Name of the cutout to get data from.
+               username: If given, find the cutout under this users cutouts
+                         instead of your own.
+          
+          On successful return, a file named meta_<cutoutname>.npz will
+          be available for download in your folder.
+
+          It is a zipped file with the following numpy arrays:
+
+               latitudes,longitudes: Contains latitudes and longitudes (in degrees)
+                                     of each point in the cutout.
+                                     The i,j'th entry corresponds to the i,j'th
+                                     point in the cutout.
+
+               dates: Timestamps of each hour in the cutout.
+                      The i'th entry here corresponds to the i'th hour in the cutout. 
+
+               onshoremap: A map of onshore points.
+                           Cell i,j contains 1 if the point is onshore, 0 otherwise.
+
+               heights: The height in of the grid cell.
+                        Negative numbers indicate below sea level.
+                        These values are derived by interpolating the
+                        GEBCO 30 arc minute grid at the center of each grid cell.
+
+          The .npz file can be opened directly by numpy's load() function.
+          
+\end{verbatim}
+\subsubsection{\_get\_unique\_npy\_file()}
+
+
+\begin{verbatim}
+
+          Generate a file with a unique name in your directory.
+          The filename will end with ".npy".
+          
+          This function could be useful if you do a lot of
+          conversion + aggregation jobs for automatic name generation.
+
+          Returns the name of the file, including the .npy extension. 
+\end{verbatim}
+\subsubsection{select\_cutout()}
+
+
+\begin{verbatim}
+ Selects a cutout for doing conversions.
+
+          Arguments:
+               cutoutname: Name of the cutout to select.
+               username: If given, select this users cutout.
+
+          All conversions will be done on the selected cutout.
+          
+\end{verbatim}
+\subsubsection{get\_selected\_cutout()}
+
+
+\begin{verbatim}
+ Returns a tuple (cutoutname, username) for the currently selected cutout. 
+\end{verbatim}
+\subsubsection{convert\_and\_aggregate\_wind()}
+
+
+\begin{verbatim}
+ Submit a wind conversion and aggregation to job queue.
+
+          Returns the job number of the conversion in the job queue.
+
+          Arguments:
+               result_name: Name of file for storing the result.
+               onshorepowercurve: A powercurve object for use onshore.
+               offshorepowercurve: A powercurve object for use offshore.
+               capacitylayouts: A list of file names in your folder containing
+                                capacitylayouts to apply.
+                                These should all be numpy (.npy) files.
+               save_sum: If true, store the sum of production of all grid cells
+                         in result_name + "_sum.npy" in your folder on the server.
+                         If save_sum is true, the list of capacity layouts can
+                         be empty, in which case only the sum is calculated.
+               onshoremap: If given, use this named .npy file in your server folder
+                           as an onshoremap instead of the default CFSR land sea mask.
+               nthreads: If given, run the conversion and aggregation
+                         with this many threads. Requires privileges to set.
+               worksize: If given, each thread converts/aggregates this many
+                         hours at a time. Requires privileges to set.
+
+     
+          The result is stored in your folder on the server with the name
+          you gave as parameter result_name. It is a numpy array with a number
+          of timeseries equal to the number of layouts you specified.
+          To get e.g. hour 100 for layout number 2, use result_name[99][1]. 
+
+          A powercurve object is a dictionary with three keys: HUB_HEIGHT, V and POW.
+          The value for HUB_HEIGHT is the hub height in meters above ground.
+          The values for V and POW are equal length lists of numbers.
+          POW[i] is the power output for a wind speed V[i].
+          The V's must be increasing for the linear interpolation routine to work,
+          and be in units of meters per second.
+
+          Note: To get production values between 0 and 1, send scaled down power curves!
+          The timeseries are simply a weighted sum over production in the entire cutout,
+          with the layout cells as weights. The unit of the sum is the unit of the layout
+          times the unit on the second axis of the power curve.
+          
+\end{verbatim}
+\subsubsection{reset\_orientations()}
+
+
+\begin{verbatim}
+ Reset the list of solar panel orientation functions. 
+\end{verbatim}
+\subsubsection{add\_constant\_orientation\_function()}
+
+
+\begin{verbatim}
+ Add a constant orientation to the list of PV panel orientations
+          for PV conversions. 
+          
+          Arguments:
+               slope: The slope, i.e. angle between panel and ground, in degrees.
+               azimuth: The east-west angle of the panel, in degrees.
+                        Westward direction is positive, eastward negative.
+               weight: Factor to apply to the result of the conversion
+                       with this orientation.
+          
+\end{verbatim}
+\subsubsection{add\_horizontal\_axis\_tracking\_orientation\_function()}
+
+
+\begin{verbatim}
+ Add a horizontal axis tracking orientation to the list of
+          PV panel orientations for PV conversions. 
+          
+          Arguments:
+               slope: The constant slope, i.e. angle between panel and ground, in degrees.
+               weight: Factor to apply to the result of the conversion
+                       with this orientation.
+          
+\end{verbatim}
+\subsubsection{add\_vertical\_axis\_tracking\_orientation\_function()}
+
+
+\begin{verbatim}
+ Add a vertical axis tracking orientation to the list of
+          PV panel orientations for PV conversions. 
+          
+          Arguments:
+               azimuth: The constant east-west angle of the panel, in degrees.
+                        Westward direction is positive, eastward negative.
+               weight: Factor to apply to the result of the conversion
+                       with this orientation.
+          
+\end{verbatim}
+\subsubsection{add\_full\_tracking\_orientation\_function()}
+
+
+\begin{verbatim}
+ Add a full axis tracking orientation to the list of
+          PV panel orientations for PV conversions. 
+          
+          Arguments:
+               weight: Factor to apply to the result of the conversion
+                       with this orientation.
+          
+\end{verbatim}
+\subsubsection{convert\_and\_aggregate\_pv()}
+
+
+\begin{verbatim}
+ Submit a photovoltaics conversion and aggregation to job queue.
+
+          Arguments:
+               result_name: Name of file for storing the result.
+               solar_panel_config: A solar panel configuration object,
+               capacitylayouts: A list of names of files in your folder
+                                containing capacitylayouts to apply.
+                                These should all be numpy (.npy) files.
+               save_sum: If true, store the sum of production of all grid cells
+                         in result_name + "_sum.npy" in your folder on the server.
+                         If save_sum is true, the list of capacity layouts can
+                         be empty, in which case only the sum is calculated.
+               
+               nthreads: If given, run the conversion and aggregation
+                         with this many threads. Requires privileges to set.
+               worksize: If given, each thread converts/aggregates this many
+                         hours at a time. Requires privileges to set.
+
+          Returns the job number of the conversion in the job queue.
+     
+          The result is stored in your folder on the server with the name
+          you gave as parameter result_name. It is a numpy array with a number
+          of timeseries equal to the number of layouts you specified.
+          To get e.g. hour 100 for layout number 2, use result_name[99][1]. 
+
+          A solar_panel_config object is a dictionary with the following keys:
+               A, B, C: The A,B, and C coefficients in the expression
+                    reference_effeciency(I) = A + B(I) + C*log(I)
+                    (I is the incident radiation). (See [1])
+               D: The temperature power coefficient of the PV cell.
+               NOCT: The Normal Operating Cell Temperature (in Kelvin)
+               Tstd: The Standard Test Conditions temperature (in Kelvin)
+               Tamb: The ambient temperature at STC (in Kelvin)
+               Intc: Normal Testing Conditions irradiance (in W/m^2)
+               ta: Product of transmittance and absorptance for the glass panel
+                   in front of the solar cell. (0.9 is typical)
+               threshold: Solar radiation below which the panel stops giving useful power
+                          (set to e.g. 1 to avoid division by zero)
+               inverter_efficiency: The (constant) efficiency of the inverter.
+                                    The entire timeseries is multiplied with this number.
+
+          The input orientations will be reset after a successful call.
+
+          Note: To get production values in units of installed capacity
+                (for a single orientation), calculate the A,B and C coefficients
+                for 1 m^2 solar panel, and divide the weight by the rated production
+                for 1 m^2 of the solar panel.
+
+          The timeseries are simply a weighted sum over production in the entire cutout,
+          with the layout cells as weights. The unit of the sum is the unit of the layout
+          times the unit of the production.
+
+          The production in each cell is calculated as a sum of the production
+          for each orientation times that orientations weight.
+          The unit of the production in each cell is proportional to W/m^2
+          (depending on A,B and C) times the unit of the orientation weights.
+
+          [1]:  "A robust model for the MPP performance of different types of PV-modules
+          applied for the performance check of grid connected systems", 2004,
+          by Hans Beyer, Gerd Heilscher and Stefan Bofinger
+          
+\end{verbatim}
+

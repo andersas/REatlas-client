@@ -1,0 +1,356 @@
+\subsubsection{shutdown()}
+
+
+\begin{verbatim}
+
+          Shut down the server. Takes no arguments. 
+          Can only be executed by a privileged user. 
+\end{verbatim}
+\subsubsection{cancel\_all\_jobs()}
+
+
+\begin{verbatim}
+ Cancel all jobs in the queue. No arguments. Requires privileges. 
+\end{verbatim}
+\subsubsection{iterate\_mode()}
+
+
+\begin{verbatim}
+ iterate_mode(s) -> path as string
+          
+          The underlying weather data takes up large amounts of storage space.
+          Therefore, only aggregated time series can be sent over the network.
+
+          By entering iterate mode, you obtain an exclusive lock to the server.
+          This allows you to extract conversions on a grid cell basis.
+          If the server is idle for more than 10 minutes in iterate mode,
+          it switches back to normal mode.
+          
+          For speed of calculation, the raw data is stored in a RAM disk
+          on the server. The result arrays are also stored there.
+          Whenever a new conversion is done, previous results are overwritten.
+          The exclusive lock on the server is there to guarantee that
+          this won't happen while you're reading your results.
+
+          Because of limited network speed, the results are still not
+          sent over the network. Therefore, you must have direct access
+          to the server file system to obtain the results.
+
+          Returns:
+
+          On a successfull call to this method, a tuple containing first
+          the path to the cutout in the RAM disk and second the path
+          to your folder on the server is returned.
+          You can use this to access the results/raw data and 
+          to bypass the server download mechanisms and directly
+          access your files.
+
+          You can call this function multiple times even when already
+          in iterate mode.
+     
+          A cutout is a folder with the following files:
+          
+               meta.json: JSON formatted dictionary with meta data (shape etc.)
+                          Use this file first when opening the arrays.
+                          If usefloat is false, all arrays are in
+                          double precision. Else, influx.raw, outflux.raw,
+                          result_pv.raw, result_wind.raw, roughness,
+                          temperature.raw and wind-speed.raw are all stored
+                          in single precision.
+               
+               dates: C array of 64 bit integers storing the UNIX timestamp
+                      for each time step in the time series
+
+               dates.npy: array of python datetime.datetime timestamps for
+                          each time step in the time series.
+
+               heights:   double array in the shape of the cutout where
+                          each cell gives the height (in meters) in the
+                          center of the grid cell
+
+               influx.raw: Raw insolation data (W/m^2). Input for PV conversion.
+
+               latitudes: double array in the shape of the cutout where
+                          each cell gives the latitude (in degrees) of
+                          the center of the grid cell.
+
+               longitudes: ditto for longitudes
+
+               onshoremap: 8 bit integer array in the shape of the cutout.
+                           Contains 0 if the grid cell is offshore, and 1 
+                           if it's onshore.
+
+               outflux.raw: Raw reflected radiation data (W/m^2). This
+                            is input data for PV conversion.
+
+               result_pv.raw: Result of PV conversion.
+
+               result_wind.raw: Result of wind conversion.
+
+               roughness: 3D Array (monthly, not hourly!) of roughness
+                          values for each grid cell.
+
+               roughness_offsets: Array of 64 bit unsigned integers.
+                                  The i'th entry gives the first hour 
+                                  of the i'th month.
+               
+               temperature.raw: Raw input to PV conversion (Kelvin).
+               
+               wind-speed.raw: Raw input to wind conversion (m/s).
+
+
+          The following example python program opens the wind result
+          and prints out the grid cell with index 1,2 for hour 0.
+          (counting from 0)
+
+          import numpy
+          import json
+
+          with open("meta.json") as f: # Load meta information
+               meta = json.load(f)
+
+          dtype = numpy.double # Use single or double precision?
+          if (meta["usefloat"]):
+               dtype = numpy.single;
+    
+          shape = meta["shape"]
+          num_hours = meta["length"]
+
+          array_shape = tuple([num_hours] + shape); # Total shape of output
+
+          # Open the result as a numpy array:
+          wind_result = numpy.memmap("result_wind.raw",mode="r",dtype=dtype,
+                                     shape = array_shape);
+
+          print(wind_result[0][1][2]);
+
+
+          Note that wind_result will change when a new wind conversion is run.
+          This is because wind_result is a memory map of the result
+          in the RAM disk.
+          Therefore, you don't have to reopen the result_wind.raw file
+          when a new conversion is done.
+          
+\end{verbatim}
+\subsubsection{exit\_iterate\_mode()}
+
+
+\begin{verbatim}
+ Exit from iterate mode. 
+\end{verbatim}
+\subsubsection{iterate\_convert\_wind()}
+
+
+\begin{verbatim}
+ Submit a wind conversion to job queue.
+
+          Returns the job number of the conversion in the job queue.
+
+          Arguments:
+               onshorepowercurve: A powercurve object for use onshore.
+               offshorepowercurve: A powercurve object for use offshore.
+               onshoremap: If given, use this named .npy file in your server folder
+                           as an onshoremap instead of the default CFSR land sea mask.
+               nthreads: If given, run the conversion and aggregation
+                         with this many threads. Requires privileges to set.
+               worksize: If given, each thread converts/aggregates this many
+                         hours at a time. Requires privileges to set.
+
+     
+          The result is stored as a C array in the server RAM disk.
+          To open it, it's a good idea to directly memory map the file
+          as an array. The dimensions of the array are length x shape,
+          where length and shape are in the meta.json file.
+          To get hour 20, for cell 4,1, access result[20][4][1].
+
+          A powercurve object is a dictionary with three keys: HUB_HEIGHT, V and POW.
+          The value for HUB_HEIGHT is the hub height in meters above ground.
+          The values for V and POW are equal length lists of numbers.
+          POW[i] is the power output for a wind speed V[i].
+          The V's must be increasing for the linear interpolation routine to work,
+          and be in units of meters per second.
+
+          Note: To get production values between 0 and 1, send scaled down power curves!
+          The timeseries are simply a weighted sum over production in the entire cutout,
+          with the layout cells as weights. The unit of the sum is the unit of the layout
+          times the unit on the second axis of the power curve.
+          
+\end{verbatim}
+\subsubsection{iterate\_convert\_pv()}
+
+
+\begin{verbatim}
+ Submit a photovoltaics conversion to job queue.
+
+          Arguments:
+               solar_panel_config: A solar panel configuration object,
+               nthreads: If given, run the conversion and aggregation
+                         with this many threads. Requires privileges to set.
+               worksize: If given, each thread converts/aggregates this many
+                         hours at a time. Requires privileges to set.
+
+          Returns the job number of the conversion in the job queue.
+    
+          The result is stored as a C array in the server RAM disk.
+          To open it, it's a good idea to directly memory map the file
+          as an array. The dimensions of the array are length x shape,
+          where length and shape are in the meta.json file.
+          To get hour 20, for cell 4,1, access result[20][4][1].
+
+          A solar_panel_config object is a dictionary with the following keys:
+               A, B, C: The A,B, and C coefficients in the expression
+                    reference_effeciency(I) = A + B(I) + C*log(I)
+                    (I is the incident radiation). (See [1])
+               D: The temperature power coefficient of the PV cell.
+               NOCT: The Normal Operating Cell Temperature (in Kelvin)
+               Tstd: The Standard Test Conditions temperature (in Kelvin)
+               Tamb: The ambient temperature at STC (in Kelvin)
+               Intc: Normal Testing Conditions irradiance (in W/m^2)
+               ta: Product of transmittance and absorptance for the glass panel
+                   in front of the solar cell. (0.9 is typical)
+               threshold: Solar radiation below which the panel stops giving useful power
+                          (set to e.g. 1 to avoid division by zero)
+               inverter_efficiency: The (constant) efficiency of the inverter.
+                                    The entire timeseries is multiplied with this number.
+
+          The input orientations will be reset after a successful call.
+
+          Note: To get production values in units of installed capacity
+                (for a single orientation), calculate the A,B and C coefficients
+                for 1 m^2 solar panel, and divide the weight by the rated production
+                for 1 m^2 of the solar panel.
+
+          The timeseries are simply a weighted sum over production in the entire cutout,
+          with the layout cells as weights. The unit of the sum is the unit of the layout
+          times the unit of the production.
+
+          The production in each cell is calculated as a sum of the production
+          for each orientation times that orientations weight.
+          The unit of the production in each cell is proportional to W/m^2
+          (depending on A,B and C) times the unit of the orientation weights.
+
+          [1]:  "A robust model for the MPP performance of different types of PV-modules
+          applied for the performance check of grid connected systems", 2004,
+          by Hans Beyer, Gerd Heilscher and Stefan Bofinger
+          
+\end{verbatim}
+\subsubsection{iterate\_convert\_wind\_and\_pv()}
+
+
+\begin{verbatim}
+ Submit a wind /and/ photovoltaics conversion to job queue.
+
+          Arguments:
+               onshorepowercurve: A powercurve object for use onshore.
+               offshorepowercurve: A powercurve object for use offshore.
+               onshoremap: If given, use this named .npy file in your
+                           server folder as an onshoremap instead of
+                           the default CFSR land sea mask.
+:
+               solar_panel_config: A solar panel configuration object,
+               nthreads: If given, run the conversion and aggregation
+                         with this many threads. Requires privileges to set.
+               worksize: If given, each thread converts/aggregates this many
+                         hours at a time. Requires privileges to set.
+
+          Returns the job number of the conversion in the job queue.
+
+          The result of this function is exactly the same as
+          calling iterate_convert_wind() and iterate_convert_pv() separately,
+          except it's slightly faster.
+          
+\end{verbatim}
+\subsubsection{iterate\_save\_production\_sum()}
+
+
+\begin{verbatim}
+ Calculate the sum of production in each grid cell.
+          
+          Arguments:
+               result_name: Name of the result. A npy file with this name
+                            will be created in your directory containing
+                            the sums.
+               result_type: Must be either "wind" or "pv".
+                            This selects which result to sum.
+          
+\end{verbatim}
+\subsubsection{iterate\_aggregate\_wind()}
+
+
+\begin{verbatim}
+ Submit a wind aggregation to job queue.
+
+          Returns the job number of the conversion in the job queue.
+
+          Arguments:
+               result_name: Name of file for storing the result.
+               capacitylayouts: A list of file names in your folder containing
+                                capacitylayouts to apply.
+                                These should all be numpy (.npy) files.
+               nthreads: If given, run the conversion and aggregation
+                         with this many threads. Requires privileges to set.
+               worksize: If given, each thread converts/aggregates this many
+                         hours at a time. Requires privileges to set.
+
+          The result is stored in your folder on the server with the name
+          you gave as parameter result_name. It is a numpy array with a number
+          of timeseries equal to the number of layouts you specified.
+          To get e.g. hour 100 for layout number 2, use result_name[99][1]. 
+          
+\end{verbatim}
+\subsubsection{iterate\_aggregate\_pv()}
+
+
+\begin{verbatim}
+ Submit a PV aggregation to job queue.
+
+          Returns the job number of the conversion in the job queue.
+
+          Arguments:
+               result_name: Name of file for storing the result.
+               capacitylayouts: A list of file names in your folder containing
+                                capacitylayouts to apply.
+                                These should all be numpy (.npy) files.
+               nthreads: If given, run the conversion and aggregation
+                         with this many threads. Requires privileges to set.
+               worksize: If given, each thread converts/aggregates this many
+                         hours at a time. Requires privileges to set.
+
+          The result is stored in your folder on the server with the name
+          you gave as parameter result_name. It is a numpy array with a number
+          of timeseries equal to the number of layouts you specified.
+          To get e.g. hour 100 for layout number 2, use result_name[99][1]. 
+          
+\end{verbatim}
+\subsubsection{iterate\_aggregate\_wind\_and\_pv()}
+
+
+\begin{verbatim}
+ Submit a wind and PV aggregation to job queue.
+          Note: this is faster than aggregating wind and pv separately.
+
+          Returns the job number of the conversion in the job queue.
+
+          Arguments:
+               result_name: Name of file for storing the result.
+               wind_capacitylayouts:
+                                A list of file names in your folder containing
+                                capacitylayouts to apply for wind.
+                                These should all be numpy (.npy) files.
+               pv_capacitylayouts:
+                                A list of file names in your folder containing
+                                capacitylayouts to apply for PV.
+                                These should all be numpy (.npy) files.
+               nthreads: If given, run the conversion and aggregation
+                         with this many threads. Requires privileges to set.
+               worksize: If given, each thread converts/aggregates this many
+                         hours at a time. Requires privileges to set.
+
+          The result is stored in your folder on the server with the name
+          you gave as parameter result_name. It is a numpy array with a number
+          of timeseries equal to the number of layouts you specified.
+          To get e.g. hour 100 for wind layout number 2, use
+          result_name["wind_result"][99][1], or 
+          result_name["PV_result"][99][1] for PV.
+          
+\end{verbatim}
