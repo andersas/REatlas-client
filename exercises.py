@@ -8,10 +8,15 @@ import matplotlib.pyplot as plt
 
 ### Solution to the exercices
 
+# YOUR LOGIN CREDENTIALS HERE:
+
 server_name = "pepsimax.imf.au.dk"
 username = "username"
 password = "XXXXX"
 
+if (password == "XXXXX"):
+     print("You should set a password first...");
+     exit(1)
 
 # Exercice 1:
 
