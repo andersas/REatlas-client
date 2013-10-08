@@ -27,6 +27,7 @@ def open_layout_as_npy(filename,shape):
           if (layout.shape != shape):
                print("Arrays must have the shape " + str(shape) +". Supplied array " + filename + " has shape " + str(layout.shape) + ".",file=sys.stderr);
                exit(1);
+          return f;
 
      if (ending == ".csv"):
           layout = numpy.loadtxt(filename,delimiter=",");
