@@ -101,9 +101,11 @@ else:
 job_id = atlas.convert_and_aggregate_wind(result_name=conversion_name_base,onshorepowercurve=onshorecurve,offshorepowercurve=offshorecurve,capacitylayouts=names);
 
 ETA = atlas.get_estimated_time_before_completion_of_jobs(job_id=job_id);
-if ETA!=None:
+try:
      ETA = str(datetime.timedelta(seconds=ETA));
-
+except:
+     ETA = 'Unknown'
+     
 print("");
 print("+--- Submitted wind conversion job. ---+")
 print("| Job id: " + str(job_id).ljust(29) + "|");
