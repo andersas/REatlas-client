@@ -395,6 +395,23 @@ class REatlas(object):
                for i in range(len(weights)):
                     s.add_full_tracking_orientation_function(weight=weights[i]);
 
+          if (parser.has_section("latitude_optimal")):
+               a_s = parser.get("latitude_optimal","a").split(",");
+               b_s = parser.get("latitude_optimal","b").split(",");
+               azimuths = parser.get("latitude_optimal","azimuth").split(",");
+               weights = parser.get("latitude_optimal","weight").split(",");
+     
+               if (len(a)!=len(azimuths) or len(azimuths)!=len(weights) or len(a) != len(b)):
+                   raise ValueError("Malformed config file " + filename);
+               a_s = [float(a) for a in a_s];
+               b_s = [float(b) for b in b_s];
+               azimuths = [float(azimuth) for azimuth in azimuths];
+               weights = [float(weight) for weight in weights];
+
+               for i in range(len(weights)):
+                    s.add_latitude_optimal_orientation_function(a=a_s[i],b=b_s[i],azimuth=azimuths[i],weight=weights[i]);
+ 
+
 
      def download_file(s,filename,username=""):
           """ download_file(filename,username="")
