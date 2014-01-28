@@ -132,13 +132,13 @@ else: #Ok, user does not want a .npz file...
      
           
           sf = shapefile.Writer(shapefile.POINT);
-          sf.field("LATITUDE",'O',8,0);
-          sf.field("LONGITUDE",'O',8,0);
+          sf.field("LATITUDE",'N',8,1);
+          sf.field("LONGITUDE",'N',8,1);
           sf.field("IDX1",'N',8,0);
           sf.field("IDX2",'N',8,0);
           sf.field("ONSHORE",'L',1);
-          sf.field("HEIGHT",'O',8);
-          sf.field("CAPACITY",'O',8,0);
+          sf.field("HEIGHT",'N',8,1);
+          sf.field("CAPACITY",'N',8,1);
 
           latitudes = meta["latitudes"];
           longitudes = meta["longitudes"];
