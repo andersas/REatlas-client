@@ -155,7 +155,8 @@ else: #Ok, user does not want a .npz file...
                          height = meta["heights"][i][j];
                          capacity = 0.0;
                          sf.point(lon,lat);
-                         rec = [lat,lon,i,j,onshore,height,capacity];
+                         
+                         rec = [ASCIInumber(lat,8),ASCIInumber(lon,8),i,j,onshore,ASCIInumber(height,8),ASCIInumber(capacity,8)];
                          sf.record(*rec);
           else:
                I = latitudes.shape[0];
@@ -177,3 +178,9 @@ else: #Ok, user does not want a .npz file...
           dates_filename = filename[0:-4] + "_dates.csv";
           print("Saving " + dates_filename + ".");
           numpy.savetxt(dates_filename,meta["dates"],delimiter=",",fmt="%s");
+          
+def ASCIInumber(x,n=8):
+     """Reduce the ASCII representation of a number to n chr (including decimal seperator)."""
+     
+     return numpy.float(str(x)[:n])
+     
