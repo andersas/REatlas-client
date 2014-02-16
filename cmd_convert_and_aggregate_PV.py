@@ -108,10 +108,7 @@ else:
 job_id = atlas.convert_and_aggregate_pv(result_name=conversion_name_base,solar_panel_config=panelconf,capacitylayouts=names);
 
 ETA = atlas.get_estimated_time_before_completion_of_jobs(job_id=job_id);
-try:
-     ETA = str(datetime.timedelta(seconds=ETA));
-except:
-     ETA = 'Unknown'
+ETA = str(datetime.timedelta(seconds=ETA));
 
 print("");
 print("+--- Submitted wind conversion job. ---+")
