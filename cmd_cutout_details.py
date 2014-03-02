@@ -15,7 +15,8 @@ cwd = os.path.dirname(__file__)
 		
 message={}
 resultarray = {}
-		
+limitextentObj = {}
+
 def get_cutout_details(filename):
 	try:
 		loadedObject = numpy.load(filename);
@@ -60,6 +61,7 @@ def get_cutout_points(filename):
             mpLatitudes = numpy.array(loadedObject["latitudes"]);
             mpOnshoremap = numpy.array(loadedObject["onshoremap"]);
             mpHeights = numpy.array(loadedObject["heights"]);
+           
             if cutout_dim == 1:
                 numberOfPoints = numpy.array(loadedObject["longitudes"]).size;
                 for index in range(numberOfPoints):
@@ -68,7 +70,13 @@ def get_cutout_points(filename):
                     pointarray["longitude"] = mpLongitudes[index]
                     pointarray["onshore"] = mpOnshoremap[index]
                     pointarray["height"] = mpHeights[index]
-                    resultpointarray.append(pointarray)
+                    pointarray["capacity"] = 0.0;
+                    if limitextentObj:
+                         if ((pointarray["longitude"] >= limitextentObj["xmin"] and pointarray["longitude"] <= limitextentObj["xmax"])
+                               or (pointarray["latitude"] >= limitextentObj["ymin"] and pointarray["latitude"] <= limitextentObj["ymax"])):
+                                  resultpointarray.append(pointarray);
+                    else:
+                        resultpointarray.append(pointarray);
             elif cutout_dim == 2:
                 dimSize = numpy.array(mpLongitudes.shape);
                 xSize=dimSize[0];
@@ -81,8 +89,17 @@ def get_cutout_points(filename):
                         pointarray["longitude"] = mpLongitudes[xIndex][yIndex]
                         pointarray["onshore"] = mpOnshoremap[xIndex][yIndex]
                         pointarray["height"] = mpHeights[xIndex][yIndex]
-                        yArry.append(pointarray)
-                    resultpointarray.append(yArry)
+                        pointarray["capacity"] = 0.0;
+                      #  print(pointarray);
+                      #  print("xmin:"+str(limitextentObj["xmin"])+" xmax:"+str(limitextentObj["xmax"])+" ymin:"+str(limitextentObj["ymin"])+" ymax:"+str(limitextentObj["ymax"]));
+                        if limitextentObj:
+                            if ((pointarray["longitude"] >= limitextentObj["xmin"] and pointarray["longitude"] <= limitextentObj["xmax"])
+                               or (pointarray["latitude"] >= limitextentObj["ymin"] and pointarray["latitude"] <= limitextentObj["ymax"])):
+                                   yArry.append(pointarray);
+                        else:
+                            yArry.append(pointarray);
+                    if yArry:        
+                        resultpointarray.append(yArry)
 
             else:
                     print ('{"error":"Cutout type not supported"}')   
@@ -114,6 +131,7 @@ parser.add_argument('--cutoutuser',nargs="?",type=str,help="Name of the owner of
 parser.add_argument("filename", nargs=1, type=str,help="Name of the file to save to. If it has no ending or ends with .npz, a numpy file is saved. If it ends with csv, an ASCII csv file will be saved. If it ends in .mat, a matlab file will be saved, and if the filename ends with .shp, a shapefile (arcgis) will be saved.");
 parser.add_argument("--withdata",action='store_true',help="Include grid points data.If not mentioned only summary details will be returned");
 parser.add_argument("--output",nargs="?",type=str,help="output type (print/JSON) ");
+parser.add_argument("--limitextent",nargs="?",type=str,help="Limit return data based on specified Extent data in JSON format.E.g. {\"xmin\":1002928.7248612981,\"ymin\":7578891.023036131,\"xmax\":1188670.7035943475,\"ymax\":7680858.018768595}");
 parser.set_defaults(withdata=False)
 
 choices=['.npz','.csv','.mat','.shp']
@@ -124,7 +142,11 @@ cutoutname = args.cutoutname[0];
 cutoutuser = args.cutoutuser
 output = args.output;
 filename = args.filename[0];
-withdata=args.withdata
+withdata=args.withdata;
+limitextent=args.limitextent;
+
+if (limitextent != None):
+    limitextentObj=json.loads(args.limitextent);
 
 if (filename.endswith(".mat")):
  try:
@@ -201,7 +223,10 @@ try:
                 outArr['data'] = resultpointarray
             print (json.dumps(outArr, default=datatype_defaults));
         else:
-            print >> sys.stderr,str(resultArr)
+            if withdata:
+                print (json.dumps(resultpointarray, default=datatype_defaults));
+            else:
+                print (json.dumps(resultArr, default=datatype_defaults));
             
 except reatlas_client.REatlasError as e:
     # Handle the exception...
