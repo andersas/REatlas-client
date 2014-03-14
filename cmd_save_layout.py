@@ -117,35 +117,32 @@ for idx, val in enumerate(capacitylayoutObj):
             continue;
         layoutTmp[idx,idx1] = val1;
 
+i=0
 
 if (layout_name == None):
     # layout_name = atlas._get_unique_npy_file();
     layout_name = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")+".npy"
+    layout_name_base = layout_name[:-4];
+    name = "layout_"+username+"_"+cutoutname+"_" +layout_name_base +"_"+ str(i).rjust(4,"0") + ".npy";
 else:
      layout_name += ".npy"
-
-layout_name_base = layout_name[:-4];
-
+     name = layout_name;
 
 if (output != "JSON"):
     print("Opening and formatting layouts...");
 
-
-
 if (output != "JSON"):
     print("Uploading layout...");
 
-i=0
-name = cutoutuser+"_"+cutoutname+"_layout_" +layout_name_base +"_"+ str(i).rjust(4,"0") + ".npy";
-numpy.save(cwd+"/data/"+cutoutuser+"/"+name,layoutTmp);
-layout_file=open_layout.open_layout_as_npy(cwd+"/data/"+cutoutuser+"/"+name,shape)
+numpy.save(cwd+"/data/"+username+"/"+name,layoutTmp);
+layout_file=open_layout.open_layout_as_npy(cwd+"/data/"+username+"/"+name,shape)
 atlas.upload_from_file_and_rename(local_file=layout_file,remote_file=name);
      
 if (output == "JSON"):
         outArr={}
         outArr['type']="Success"
         outArr['text']="Layout uploaded"
-        outArr['desc']="Layout for user:"+str(cutoutuser)+" LayoutName:"+name
+        outArr['desc']="Layout for user:"+str(username)+" LayoutName:"+name
         outArr['traceback']= ''
         outArr['data'] = ''
         print (json.dumps(outArr));

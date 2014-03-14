@@ -8,15 +8,13 @@ import json,re
 import errno
 from socket import error as socket_error
 
-parser = argparse.ArgumentParser(description="List all layout on the REatlas server");
+parser = argparse.ArgumentParser(description="Remove a file on the REatlas server");
 parser.add_argument('server',nargs=1,type=str,help="Name or IP of REatlas server");
 parser.add_argument('-p', '--port', nargs="?", type=int,help="Port number of REatlas server");
 parser.add_argument("--username",nargs="?",type=str,help="REatlas user name");
 parser.add_argument("--password",nargs="?",type=str,help="REatlas password");
-parser.add_argument("--layoutuser",nargs="?",type=str,help="Layout creator");
-parser.add_argument("--cutout",nargs="?",type=str,help="Cutout");
+parser.add_argument('filename',nargs=1,type=str,help="Name of file");
 parser.add_argument("--output",nargs="?",type=str,help="output type (print/JSON) ");
-
 
 args = parser.parse_args();
 
@@ -24,13 +22,9 @@ server = args.server[0];
 port = args.port
 username = args.username;
 password = args.password;
-layoutuser = args.layoutuser;
+infilename = args.filename[0];
 output = args.output;
-cutout = args.cutout;
 
-finalLayoutList = [];
-           
-           
 if (username == None):
      username = raw_input("username: ");
 
@@ -59,50 +53,18 @@ try:
             print("Invalid username or password",file=sys.stderr);
 
           os._exit(1);
-    layouts = atlas.list_files()
+    atlas.delete_file(filename=infilename,username=username)
     atlas.disconnect();
-    for layout in layouts:
-      if (layoutuser == None):
-         myarray = {}
-         myarray['layout']=layout[0]
-         myarray['layoutSize']=layout[1]
-         finalLayoutList.append(myarray)
-      else:
-         matchObj = re.match( r'^layout_'+layoutuser+'_(.*).npy$', layout[0], re.M|re.I)
-         if matchObj:
-            if cutout:
-                matchObjCut = re.match( r'^layout_'+layoutuser+"_"+cutout+'_(.*).npy$', layout[0], re.M|re.I)
-                if matchObj and matchObjCut:
-                    myarray = {}
-                    myarray['layout']=matchObjCut.group(1)
-                    myarray['layoutSize']=layout[1]
-                    finalLayoutList.append(myarray)
-            else:
-                if matchObj:
-                    myarray = {}
-                    myarray['layout']=matchObj.group(1)
-                    myarray['layoutSize']=layout[1]
-                    finalLayoutList.append(myarray)
     if (output == "JSON"):
             outArr={}
             outArr['type']="Success"
-            outArr['text']="Layout list"
-            outArr['desc']="Layout(s) for user:"+str(layoutuser)
+            outArr['text']="File deleted"
+            outArr['desc']="File name:"+infilename
             outArr['traceback']= ''
-            outArr['data'] = sorted(finalLayoutList, key=lambda k: k['layout'], reverse=True)       
+            outArr['data'] = ''       
             print (json.dumps(outArr));
     else:
-            i = 0;
-            for layout in finalLayoutList:
-                 name = layout["layout"];
-                 size = layout["layoutSize"];
-
-                 if (i%2 == 0):
-                      fill = " ";
-                 else:
-                      fill = ".";
-                 i += 1;
-                 print((name + " (" + layoutuser + "): ").ljust(30,fill) + str(size/(1024**3)).rjust(7,fill) + " GB");
+            print("File deleted. File name:"+infilename);
 except socket_error as serr:
  #   if serr.errno != errno.ECONNREFUSED:
     if (output == "JSON"):
@@ -120,7 +82,7 @@ except reatlas_client.REatlasError as e:
     if (output == "JSON"):
         resultArr={}
         resultArr['type']="Error"
-        resultArr['text']="Error in getting layout list"
+        resultArr['text']="Error in deleting file"
         resultArr['desc']=str(e);
         exc_type, exc_value, exc_tb = sys.exc_info();
         resultArr['traceback']= traceback.format_exception(exc_type, exc_value, exc_tb);
