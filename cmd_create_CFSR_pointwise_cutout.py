@@ -3,7 +3,9 @@
 from __future__ import print_function
 import reatlas_client
 import argparse
-import sys
+import sys,os
+import socket, errno
+import traceback,json
 
 
 parser = argparse.ArgumentParser(description="Create a pointwise cutout");
@@ -17,7 +19,7 @@ parser.add_argument("-ly","--lastyear",nargs="?",type=int,help="Last year to ext
 parser.add_argument("-fm","--firstmonth",nargs="?",type=int,help="First month in start year to extract");
 parser.add_argument("-lm","--lastmonth",nargs="?",type=int,help="Last month in enyear to extract");
 parser.add_argument("GPS_coordinate_pairs", nargs="+",type=str,help="A list of latitudes and longitudes in degrees of each point (e.g. 57.4,7.5 59,9)");
-
+parser.add_argument("--output",nargs="?",type=str,help="output type (print/JSON) ");
 
 
 args = parser.parse_args();
@@ -51,6 +53,7 @@ server = args.server[0];
 port = args.port
 username = args.username;
 password = args.password;
+output = args.output;
 
 if (username == None):
      username = raw_input("username: ");
@@ -65,7 +68,18 @@ else:
 
 if (not atlas.connect_and_login(username=username,password=password)):
           atlas.disconnect()
-          print("Invalid username or password",file=sys.stderr);
+          if (output == "JSON"):
+               resultArr={}
+               resultArr['type']="Error"
+               resultArr['text']="Invalid username or password"
+               resultArr['desc']="Invalid username or password"
+               exc_type, exc_value, exc_tb = sys.exc_info()
+               resultArr['traceback']= traceback.format_exception(exc_type, exc_value, exc_tb)
+               print (json.dumps(resultArr));
+            #   var = traceback.format_exc().splitlines();
+          else:
+              print("Invalid username or password",file=sys.stderr);
+          os._exit(1);
 
 
 idx1, idx2 = atlas.translate_GPS_coordinates_to_CFSR_index(latitudes=cutout_args["latitudes"],longitudes=cutout_args["longitudes"]);
@@ -82,24 +96,50 @@ for i in range(1,len(points)):
           
           print(coordinates[k] + " and " + coordinates[l] + " are in the same grid cell.",file=sys.stderr);
           exit(1);
-     
-job_id = atlas.cutout_CFSR_individual_points_by_GPS_coordinates(**cutout_args);
+try:     
+    job_id = atlas.cutout_CFSR_individual_points_by_GPS_coordinates(**cutout_args);
 
-ETA = atlas.get_estimated_time_before_completion_of_jobs(job_id=job_id);
-atlas.disconnect();
+    ETA = atlas.get_estimated_time_before_completion_of_jobs(job_id=job_id);
+    atlas.disconnect();
 
+    if (ETA != None):
+        ETA/=60.0*60.0;
+        ETA = int(round(ETA))
+        if (output == "JSON"):
+            resultArr={}
+            resultArr['type']="Success"
+            resultArr['text']="Pointwise cutout job submitted"
+            resultArr['desc']="Pointwise cutout job submitted to REatlas with job id " + str(job_id)+". Expected completion in " + str(ETA) + " hours."
+            resultArr['traceback']= ''
+            print (json.dumps(resultArr));
+        else:
+            print("Pointwise cutout job submitted to REatlas with job id " + str(job_id));
+            print("Expected completion in " + str(ETA) + " hours.");
+            print("You will receive an email when the cutout is done.");
+    else:
+        if (output == "JSON"):
+            resultArr={}
+            resultArr['type']="Error"
+            resultArr['text']="Error in job submission"
+            resultArr['desc']="Something may have gone wrong..."
+            exc_type, exc_value, exc_tb = sys.exc_info()
+            resultArr['traceback']= traceback.format_exception(exc_type, exc_value, exc_tb)
+            print (json.dumps(resultArr));
+        else:
+            print("Something may have gone wrong...");
 
-
-print("Pointwise cutout job submitted to REatlas with job id " + str(job_id));
-
-if (ETA != None):
-     ETA/=60.0*60.0;
-     ETA = int(round(ETA))
-     print("Expected completion in " + str(ETA) + " hours.");
-else:
-     print("Something may have gone wrong...");
-
-print("You will receive an email when the cutout is done.");
+except reatlas_client.REatlasError as e:
+    # Handle the exception...
+    if (output == "JSON"):
+        resultArr={}
+        resultArr['type']="Error"
+        resultArr['text']="Error in job submission"
+        resultArr['desc']=str(e);
+        exc_type, exc_value, exc_tb = sys.exc_info();
+        resultArr['traceback']= traceback.format_exception(exc_type, exc_value, exc_tb);
+        print (json.dumps(resultArr));
+    else:
+        print("Error code "+str(e),file=sys.stderr);
 
 
 

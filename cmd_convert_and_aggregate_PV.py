@@ -112,8 +112,11 @@ try:
 
     if (conversion_name == None):
          conversion_name = atlas._get_unique_npy_file();
+         
+
     else:
-         conversion_name += ".npy";
+          name1 = "solar_"+username+"_"+cutoutname+"_"+conversion_name+".npy";
+          conversion_name = name1;
 
     conversion_name_base = conversion_name[:-4];
     

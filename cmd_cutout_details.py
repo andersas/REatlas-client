@@ -90,14 +90,14 @@ def get_cutout_points(filename):
                         pointarray["onshore"] = mpOnshoremap[xIndex][yIndex]
                         pointarray["height"] = mpHeights[xIndex][yIndex]
                         pointarray["capacity"] = 0.0;
-                      #  print(pointarray);
-                      #  print("xmin:"+str(limitextentObj["xmin"])+" xmax:"+str(limitextentObj["xmax"])+" ymin:"+str(limitextentObj["ymin"])+" ymax:"+str(limitextentObj["ymax"]));
+                      #  print("long:"+str(pointarray["longitude"])+"xmin:"+str(limitextentObj["xmin"])+" xmax:"+str(limitextentObj["xmax"])+" ymin:"+str(limitextentObj["ymin"])+" ymax:"+str(limitextentObj["ymax"]));
                         if limitextentObj:
                             if ((pointarray["longitude"] >= limitextentObj["xmin"] and pointarray["longitude"] <= limitextentObj["xmax"])
-                               or (pointarray["latitude"] >= limitextentObj["ymin"] and pointarray["latitude"] <= limitextentObj["ymax"])):
+                               and (pointarray["latitude"] >= limitextentObj["ymin"] and pointarray["latitude"] <= limitextentObj["ymax"])):
                                    yArry.append(pointarray);
                         else:
                             yArry.append(pointarray);
+                   
                     if yArry:        
                         resultpointarray.append(yArry)
 
@@ -221,6 +221,8 @@ try:
             outArr['summary'] = resultArr 
             if withdata:
                 outArr['data'] = resultpointarray
+                outArr['size'] = "{ \"rows\":"+str(len(resultpointarray))+",\"columns\":"+(str(len(resultpointarray[0])) if len(resultpointarray)>0 else str(0))+"}"
+           # print(str(len(resultpointarray))+" "+str(len(resultpointarray[0])))
             print (json.dumps(outArr, default=datatype_defaults));
         else:
             if withdata:

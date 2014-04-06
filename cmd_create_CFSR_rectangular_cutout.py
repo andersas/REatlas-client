@@ -78,7 +78,7 @@ try:
             resultArr={}
             resultArr['type']="Success"
             resultArr['text']="Rectangular cutout job submitted"
-            resultArr['desc']="Rectangular cutout job submitted to REatlas with job id " + str(job_id)+"Expected completion in " + str(ETA) + " hours."
+            resultArr['desc']="Rectangular cutout job submitted to REatlas with job id " + str(job_id)+". Expected completion in " + str(ETA) + " hours."
             resultArr['traceback']= ''
             print (json.dumps(resultArr));
         else:
