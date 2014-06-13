@@ -6,6 +6,7 @@ import argparse
 import sys,os
 import socket, errno
 import traceback,json
+import datetime
 
 parser = argparse.ArgumentParser(description="Create a rectangular cutout.");
 parser.add_argument('server',nargs=1,type=str,help="Name or IP of REatlas server");
@@ -74,12 +75,13 @@ try:
     if (ETA != None):
         ETA/=60.0*60.0;
         ETA = int(round(ETA))
+        ETA = str(datetime.timedelta(seconds=ETA));
         if (output == "JSON"):
             resultArr={}
             resultArr['type']="Success"
             resultArr['text']="Rectangular cutout job submitted"
             resultArr['desc']="Rectangular cutout job submitted to REatlas with job id " + str(job_id)+". Expected completion in " + str(ETA) + " hours."
-            resultArr['data'] = '{"job_id":'+ str(job_id)+',"resultname":"'+ cutout_name +'","ETA":"'+ETA.ljust(32)+'"}'
+            resultArr['data'] = '{"job_id":'+ str(job_id)+',"resultname":"'+ cutout_args["name"] +'","ETA":"'+ETA.ljust(32)+'"}'
             resultArr['traceback']= ''
             print (json.dumps(resultArr));
         else:
