@@ -148,11 +148,11 @@ try:
         outArr={}
         outArr['type']="Success"
         outArr['text']="Submitted solar conversion job."
-        outArr['desc']=" Job id: " + str(job_id).ljust(29) + "<br/>"+\
-                       " Result name: " + conversion_name_base.ljust(24) + "<br/>"+\
-                       " ETA: " + ETA.ljust(32);
+        outArr['desc']=" Job id: " + str(job_id) + "\n"+\
+                       " Result name: " + conversion_name_base + "\n"+\
+                       " ETA: " + ETA;
         outArr['traceback']= ''
-        outArr['data'] = ''
+        outArr['data'] = '{"job_id":'+ str(job_id)+',"resultname":"'+ conversion_name_base +'","ETA":"'+ETA+'"}'
         print (json.dumps(outArr));
     else:
         print("");

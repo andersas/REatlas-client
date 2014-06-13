@@ -6,7 +6,6 @@ import os
 import subprocess
 import sys
 import traceback
-
 import argparse
 import numpy
 import reatlas_client
@@ -53,7 +52,7 @@ def get_cutout_details(filename):
         return resultarray;
 
 def get_cutout_points(filename):
-    resultpointarray = []
+    resultpointarray = {}
     try:
             loadedObject = numpy.load(filename);
             cutout_dim = numpy.array(loadedObject["longitudes"].shape).size;
@@ -74,9 +73,9 @@ def get_cutout_points(filename):
                     if limitextentObj:
                          if ((pointarray["longitude"] >= limitextentObj["xmin"] and pointarray["longitude"] <= limitextentObj["xmax"])
                                or (pointarray["latitude"] >= limitextentObj["ymin"] and pointarray["latitude"] <= limitextentObj["ymax"])):
-                                  resultpointarray.append(pointarray);
+                                  resultpointarray[index]=pointarray;
                     else:
-                        resultpointarray.append(pointarray);
+                        resultpointarray[index]=pointarray;
             elif cutout_dim == 2:
                 dimSize = numpy.array(mpLongitudes.shape);
                 xSize=dimSize[0];
@@ -99,7 +98,8 @@ def get_cutout_points(filename):
                             yArry.append(pointarray);
                    
                     if yArry:        
-                        resultpointarray.append(yArry)
+                        #resultpointarray.append(yArry)
+                        resultpointarray[xIndex]=yArry;
 
             else:
                     print ('{"error":"Cutout type not supported"}')   
@@ -221,7 +221,7 @@ try:
             outArr['summary'] = resultArr 
             if withdata:
                 outArr['data'] = resultpointarray
-                outArr['size'] = "{ \"rows\":"+str(len(resultpointarray))+",\"columns\":"+(str(len(resultpointarray[0])) if len(resultpointarray)>0 else str(0))+"}"
+                outArr['size'] = "{ \"rows\":"+str(len(resultpointarray))+",\"columns\":"+(str(len(resultpointarray.itervalues().next())) if len(resultpointarray)>0 else str(0))+"}"
            # print(str(len(resultpointarray))+" "+str(len(resultpointarray[0])))
             print (json.dumps(outArr, default=datatype_defaults));
         else:
